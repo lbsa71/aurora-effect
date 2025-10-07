@@ -77,17 +77,42 @@ export function calculateEta4(): number {
  * Calculate steady-state settled fraction X_eq
  * With finite civilization lifetime
  *
- * @param params Normalized parameters
+ * @param TlOrParams Effective launch time (years) OR normalized parameters
  * @param Ts Civilization lifetime (years)
- * @param tp Probe travel time (years)
+ * @param tp Optional probe travel time (years) - used when first param is NormalizedParameters
  * @returns Equilibrium settled fraction (0 ≤ X_eq ≤ 1)
  */
 export function calculateSteadyState(
-  params: NormalizedParameters,
+  TlOrParams: number | NormalizedParameters,
   Ts: number,
-  tp: number
+  tp?: number
 ): number {
+  // Handle overload: if first param is a number, use simple formula
+  if (typeof TlOrParams === 'number') {
+    const Tl = TlOrParams;
+    
+    // If infinite lifetime, X_eq → 1 (full settlement)
+    if (Ts === 0) {
+      return 1.0;
+    }
+
+    // Simple steady-state formula: X_eq = 1 - T_l/T_s
+    // This assumes T_s > T_l for equilibrium
+    if (Ts <= Tl) {
+      return 0.0;
+    }
+
+    const Xeq = 1 - Tl / Ts;
+    return Math.max(0, Math.min(1, Xeq));
+  }
+
+  // Handle case where first param is NormalizedParameters
+  const params = TlOrParams;
   const { eta, tauP } = params;
+
+  if (tp === undefined) {
+    throw new Error('Probe travel time tp is required when using NormalizedParameters');
+  }
 
   // If infinite lifetime, X_eq → 1 (full settlement)
   if (Ts === 0) {
@@ -138,12 +163,32 @@ export function calculateFrontThickness(params: NormalizedParameters): number {
 /**
  * Calculate galaxy crossing time
  *
- * @param galaxySize Size of galaxy (light-years)
- * @param frontSpeed Settlement front speed (ly/year)
+ * @param paramsOrGalaxySize Normalized parameters OR galaxy size (light-years)
+ * @param probeVelocityOrFrontSpeed Probe velocity (fraction of c) OR front speed (ly/year)
+ * @param galaxySize Optional galaxy size when first param is NormalizedParameters
  * @returns Crossing time (years)
  */
-export function calculateGalaxyCrossingTime(galaxySize: number, frontSpeed: number): number {
-  return galaxySize / frontSpeed;
+export function calculateGalaxyCrossingTime(
+  paramsOrGalaxySize: NormalizedParameters | number,
+  probeVelocityOrFrontSpeed: number,
+  galaxySize?: number
+): number {
+  // Handle overload: if first param is a number, use simple formula
+  if (typeof paramsOrGalaxySize === 'number') {
+    const size = paramsOrGalaxySize;
+    const frontSpeed = probeVelocityOrFrontSpeed;
+    return size / frontSpeed;
+  }
+
+  // Handle case where first param is NormalizedParameters
+  const params = paramsOrGalaxySize;
+  const probeVelocity = probeVelocityOrFrontSpeed;
+  const size = galaxySize !== undefined ? galaxySize : 100000; // Default to Milky Way size
+
+  const normalizedSpeed = calculateFrontSpeed(params);
+  const physicalSpeed = calculatePhysicalFrontSpeed(normalizedSpeed, probeVelocity);
+
+  return size / physicalSpeed;
 }
 
 /**
@@ -184,18 +229,42 @@ export function estimateMilkyWayCrossingTime(
 }
 
 /**
- * Calculate logistic growth curve parameters
- * X(t) = X_eq / (1 + ((X_eq / X_0) - 1) * exp(-r * t))
+ * Calculate logistic growth curve
+ * X(t) = X_eq / (1 + ((X_eq / X_0) - 1) * exp(-k * t))
+ * Can be called with different signatures for convenience
  *
- * @param Xeq Equilibrium fraction
- * @param X0 Initial fraction
- * @param growthRate Growth rate parameter
- * @param time Time
+ * @param timeOrXeq Time OR equilibrium fraction
+ * @param growthRateOrX0 Growth rate OR initial fraction
+ * @param XeqOrGrowthRate Optional equilibrium fraction OR growth rate
+ * @param time Optional time
  * @returns Settled fraction at time t
  */
-export function logisticGrowth(Xeq: number, X0: number, growthRate: number, time: number): number {
+export function logisticGrowth(
+  timeOrXeq: number,
+  growthRateOrX0: number,
+  XeqOrGrowthRate?: number,
+  time?: number
+): number {
+  // Handle simple case: logisticGrowth(time, growthRate) with X0=0.01, Xeq=1.0
+  if (XeqOrGrowthRate === undefined && time === undefined) {
+    const t = timeOrXeq;
+    const k = growthRateOrX0;
+    const X0 = 0.01;
+    const Xeq = 1.0;
+    
+    if (X0 <= 0 || X0 >= Xeq) return Xeq;
+    const ratio = Xeq / X0 - 1;
+    return Xeq / (1 + ratio * Math.exp(-k * t));
+  }
+
+  // Handle full case: logisticGrowth(Xeq, X0, growthRate, time)
+  const Xeq = timeOrXeq;
+  const X0 = growthRateOrX0;
+  const growthRate = XeqOrGrowthRate!;
+  const t = time!;
+
   if (X0 <= 0 || X0 >= Xeq) return Xeq;
 
   const ratio = Xeq / X0 - 1;
-  return Xeq / (1 + ratio * Math.exp(-growthRate * time));
+  return Xeq / (1 + ratio * Math.exp(-growthRate * t));
 }
