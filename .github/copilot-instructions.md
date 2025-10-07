@@ -184,7 +184,7 @@ The codebase is organized into packages:
 
 ## Important Notes for Coding Agents
 
-1. **Phase 3 In Progress**: Implementing Web UI. Ticket 3.1 (UI Framework Setup) complete. Basic implementations of Configuration, Controls, Metrics, and WebSocket integration working. Next: Galaxy Visualization (Ticket 3.3).
+1. **Phase 3 In Progress**: Implementing Web UI. Tickets 3.1 (UI Framework Setup) and 3.3 (Galaxy Visualization Canvas) complete. Basic implementations of Configuration, Controls, Metrics, and WebSocket integration working. Next: Finalize remaining UI components and integration.
 
 2. **Phase 1 & 2 Complete**: Phase 1 (Tickets 1.1-1.9) and Phase 2 (Tickets 2.1-2.5) are complete with 51 passing tests. Code is working and validated.
 
@@ -198,7 +198,7 @@ The codebase is organized into packages:
 
 7. **Validation Complete**: Ticket 1.9 is done. All four validation tests pass. See VALIDATION_REPORT.md.
 
-8. **Phase 3 Ticket 3.1 Complete**: UI Framework with React + Vite + TypeScript + Material-UI + Zustand working. Basic UI components functional. See PHASE3_SUMMARY.md.
+8. **Phase 3 Tickets 3.1 & 3.3 Complete**: UI Framework and Galaxy Visualization Canvas implemented. WebGPU renderer with Canvas 2D fallback supports 3D/2D views, camera controls, and civilization colors. See PHASE3_SUMMARY.md.
 
 ## Common Pitfalls to Avoid
 
@@ -212,9 +212,9 @@ The codebase is organized into packages:
 ## Quick Reference
 
 **File Count**: 100+ files (packages including UI, validation, tests, config, docs)
-**Lines of Code**: ~12,000 (TypeScript simulator + API + UI + validation + tests)
+**Lines of Code**: ~14,000 (TypeScript simulator + API + UI + visualization + validation + tests)
 **Test Coverage**: 46 simulator tests + 5 API tests (all passing)
-**Implementation Tickets**: 14/14 Phase 1 & 2 tickets complete ✅, 1/8 Phase 3 tickets complete ✅
+**Implementation Tickets**: 14/14 Phase 1 & 2 tickets complete ✅, 2/8 Phase 3 tickets complete ✅
 **License**: MIT
 **Target Performance**: 10,000+ systems, real-time updates, <300 Myr galaxy crossing time simulation ✅
 
