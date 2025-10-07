@@ -73,6 +73,56 @@ npm run dev:ui
 
 The UI will be available at http://localhost:5173 and the API at http://localhost:3000
 
+### Running with Docker 🐳
+
+The easiest way to run the entire application is using Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up
+
+# Run in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+The UI will be available at http://localhost and the API at http://localhost:3000
+
+#### Individual Docker Images
+
+You can also build and run individual services:
+
+```bash
+# Build API image
+docker build -f packages/api/Dockerfile -t aurora-api .
+
+# Build UI image
+docker build -f packages/ui/Dockerfile -t aurora-ui .
+
+# Run API container
+docker run -p 3000:3000 aurora-api
+
+# Run UI container
+docker run -p 80:80 aurora-ui
+```
+
+#### Docker Environment Variables
+
+**API Service:**
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment mode (default: production)
+- `CORS_ORIGIN` - CORS origin (default: *)
+- `MAX_SIMULATIONS` - Maximum concurrent simulations (default: 10)
+- `UPDATE_INTERVAL_MS` - Update interval in milliseconds (default: 100)
+
+**UI Service:**
+- `VITE_API_URL` - API server URL (default: http://localhost:3000)
+
 ### Running Examples
 
 ```bash
