@@ -115,7 +115,8 @@ class ApiClient {
       throw new Error('Failed to get snapshot');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.snapshot;
   }
 
   async getConfig(id: string): Promise<{ config: SimulationConfig }> {

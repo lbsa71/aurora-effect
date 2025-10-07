@@ -58,7 +58,8 @@ export const useWebSocket = (simulationId: string | null) => {
     const fetchSnapshot = async () => {
       try {
         const data = await apiClient.getSnapshot(simulationId);
-        setSnapshot(data.snapshot || data as any); // API might return { snapshot: ... } or direct data
+        // API returns { snapshot: {...} } but getSnapshot already unwraps it
+        setSnapshot(data);
       } catch (error) {
         console.error('Failed to fetch snapshot:', error);
       }
