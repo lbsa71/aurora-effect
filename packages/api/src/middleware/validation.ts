@@ -3,7 +3,7 @@ import { ZodSchema } from 'zod';
 import { ApiError } from '../types';
 
 export const validateRequest = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     try {
       const validated = schema.parse(req.body);
       req.body = validated;

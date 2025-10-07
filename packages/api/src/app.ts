@@ -7,7 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { simulationService } from './services/simulationService';
 import { CORS_ORIGIN } from './config';
 
-export function createApp() {
+export function createApp(): express.Application {
   const app = express();
 
   // Middleware
@@ -29,7 +29,7 @@ export function createApp() {
   return app;
 }
 
-export function setupWebSocket(server: ReturnType<typeof createServer>) {
+export function setupWebSocket(server: ReturnType<typeof createServer>): SocketIOServer {
   const io = new SocketIOServer(server, {
     cors: {
       origin: CORS_ORIGIN,

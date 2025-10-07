@@ -5,8 +5,8 @@ export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  _next: NextFunction
+): void => {
   console.error('Error:', err);
 
   const apiError: ApiError = {
@@ -14,12 +14,12 @@ export const errorHandler = (
     code: 'INTERNAL_ERROR',
   };
 
-  const statusCode = (err as any).statusCode || 500;
+  const statusCode = (err as { statusCode?: number }).statusCode || 500;
 
   res.status(statusCode).json(apiError);
 };
 
-export const notFoundHandler = (req: Request, res: Response) => {
+export const notFoundHandler = (req: Request, res: Response): void => {
   const apiError: ApiError = {
     message: `Route ${req.method} ${req.path} not found`,
     code: 'NOT_FOUND',

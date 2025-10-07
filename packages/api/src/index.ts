@@ -4,7 +4,7 @@ import { PORT } from './config';
 
 const app = createApp();
 const server = createServer(app);
-const io = setupWebSocket(server);
+setupWebSocket(server);
 
 server.listen(PORT, () => {
   console.log(`Aurora Effect API server running on port ${PORT}`);
