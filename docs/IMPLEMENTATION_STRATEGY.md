@@ -6,7 +6,7 @@ This document outlines the tickets and implementation approach for building the 
 
 **Last Updated**: October 2024
 
-### Phase 1: Core Simulator Library ✅ (Complete except validation)
+### Phase 1: Core Simulator Library ✅ (Complete)
 - ✅ Ticket 1.1: Project Setup and Infrastructure
 - ✅ Ticket 1.2: Core Data Structures
 - ✅ Ticket 1.3: System Initialization
@@ -15,7 +15,7 @@ This document outlines the tickets and implementation approach for building the 
 - ✅ Ticket 1.6: Analytical Models
 - ✅ Ticket 1.7: Civilization Lifetime Dynamics
 - ✅ Ticket 1.8: Metrics and Analysis
-- ⏳ Ticket 1.9: Validation Against Paper (in progress)
+- ✅ Ticket 1.9: Validation Against Paper (complete)
 
 ### Phase 2: Web API ⏳ (Not started)
 ### Phase 3: Web UI ⏳ (Not started)
