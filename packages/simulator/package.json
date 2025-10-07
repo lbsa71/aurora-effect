@@ -10,7 +10,12 @@
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "validate": "npm run build && node dist/validation/run-all-validations.js",
+    "validate:fig3": "npm run build && node dist/validation/figure3-front-snapshot.js",
+    "validate:fig6-7": "npm run build && node dist/validation/figure6-7-crossing-time.js",
+    "validate:fig8": "npm run build && node dist/validation/figure8-equilibrium.js",
+    "validate:fig9": "npm run build && node dist/validation/figure9-steady-state.js"
   },
   "keywords": [
     "simulation",
