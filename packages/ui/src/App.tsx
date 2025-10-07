@@ -4,6 +4,7 @@ import { Configuration } from './components/Configuration';
 import { Controls } from './components/Controls';
 import { Visualization } from './components/Visualization';
 import { Metrics } from './components/Metrics';
+import { Legend } from './components/Legend';
 
 function App() {
   return (
@@ -27,6 +28,9 @@ function App() {
             </Grid>
             <Grid item xs={12}>
               <Metrics />
+            </Grid>
+            <Grid item xs={12}>
+              <Legend />
             </Grid>
           </Grid>
         </Grid>
