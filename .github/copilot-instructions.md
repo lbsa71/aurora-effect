@@ -4,15 +4,15 @@
 
 **Aurora Effect** is a galactic settlement simulator based on the research paper "The Fermi Paradox and the Aurora Effect: Exo-civilization Settlement, Expansion, and Steady States" by Carroll-Nellenback et al. (2019). The project simulates how space-faring civilizations spread across the galaxy, exploring solutions to the Fermi Paradox.
 
-**Current Status**: Phase 1 Complete ✅ - Core simulator library fully implemented and validated (Tickets 1.1-1.9). The repository contains a working TypeScript-based simulator with comprehensive tests and validation against the research paper. Ready for Phase 2 (Web API).
+**Current Status**: Phase 2 Complete ✅ - Core simulator library and Web API fully implemented and tested. Phase 1 (Tickets 1.1-1.9) complete with working implementation and validation. Phase 2 (Tickets 2.1-2.5) complete with REST API and WebSocket support. Ready for Phase 3 (Web UI).
 
-**Repository Size**: Medium (~60+ files). Active npm workspaces monorepo with TypeScript, Vitest, ESLint, and GitHub Actions CI/CD configured.
+**Repository Size**: Medium (~80+ files). Active npm workspaces monorepo with TypeScript, Vitest, ESLint, and GitHub Actions CI/CD configured. Includes simulator library and Web API packages.
 
 ## Technology Stack (Implemented)
 
 - **Monorepo Structure**: npm workspaces ✅
 - **Simulator**: TypeScript with Vitest testing ✅
-- **API**: Node.js with Express and Socket.io (planned for Phase 2)
+- **API**: Node.js with Express and Socket.io ✅
 - **UI**: React or Vue.js with Canvas/WebGL (planned for Phase 3)
 - **Build**: TypeScript compiler (tsc) ✅
 - **Testing**: Vitest ✅
@@ -31,24 +31,34 @@ aurora-effect/
 │   ├── FUNCTIONS_AND_ALGORITHMS.md             # Mathematical formulas & algorithms
 │   ├── IMPLEMENTATION_STRATEGY.md               # Detailed implementation plan
 │   ├── PHASE1_SUMMARY.md                        # Phase 1 completion summary
+│   ├── PHASE2_SUMMARY.md                        # Phase 2 completion summary ✅
 │   └── VALIDATION_REPORT.md                     # Validation results ✅
 ├── packages/
-│   └── simulator/                  # Core simulation library ✅
+│   ├── simulator/                  # Core simulation library ✅
+│   │   ├── src/
+│   │   │   ├── types.ts            # Type definitions
+│   │   │   ├── utils.ts            # Utility functions
+│   │   │   ├── initialization.ts   # System initialization
+│   │   │   ├── targeting.ts        # Probe targeting algorithm
+│   │   │   ├── simulation.ts       # Main simulation engine
+│   │   │   ├── analytics.ts        # Analytical models
+│   │   │   └── index.ts            # Public API
+│   │   ├── validation/             # Validation scripts ✅
+│   │   ├── tests/                  # 46 passing tests
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── vitest.config.ts
+│   └── api/                        # Web API ✅
 │       ├── src/
-│       │   ├── types.ts            # Type definitions
-│       │   ├── utils.ts            # Utility functions
-│       │   ├── initialization.ts   # System initialization
-│       │   ├── targeting.ts        # Probe targeting algorithm
-│       │   ├── simulation.ts       # Main simulation engine
-│       │   ├── analytics.ts        # Analytical models
-│       │   └── index.ts            # Public API
-│       ├── validation/             # Validation scripts ✅
-│       │   ├── figure3-front-snapshot.ts
-│       │   ├── figure6-7-crossing-time.ts
-│       │   ├── figure8-equilibrium.ts
-│       │   ├── figure9-steady-state.ts
-│       │   └── run-all-validations.ts
-│       ├── tests/                  # 46 passing tests
+│       │   ├── routes/             # API routes
+│       │   ├── middleware/         # Express middleware
+│       │   ├── services/           # Business logic
+│       │   ├── types/              # Type definitions
+│       │   ├── config/             # Configuration
+│       │   ├── app.ts              # Express app setup
+│       │   └── index.ts            # Server entry point
+│       ├── tests/                  # 5 passing tests
+│       ├── examples/               # Client examples
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── vitest.config.ts
@@ -64,7 +74,7 @@ aurora-effect/
 
 ## Key Documentation Files
 
-**IMPLEMENTATION_STRATEGY.md** (docs/): Contains the complete development roadmap divided into 5 phases with detailed tickets. Phase 1 (Tickets 1.1-1.8) is complete with working implementation.
+**IMPLEMENTATION_STRATEGY.md** (docs/): Contains the complete development roadmap divided into 5 phases with detailed tickets. Phase 1 (Tickets 1.1-1.9) and Phase 2 (Tickets 2.1-2.5) are complete with working implementation.
 
 **FUNCTIONS_AND_ALGORITHMS.md** (docs/): Mathematical model details including:
 - Physical parameters (f, ρ, d_p, v_p, v_s, T_p, T_s)
@@ -87,11 +97,12 @@ Project has been initialized with:
 
 ### Build & Test Commands
 All commands run from repository root:
-- Build: `npm run build` (compiles TypeScript to dist/)
-- Test: `npm run test` (runs Vitest tests)
+- Build: `npm run build` (compiles TypeScript to dist/ for all packages)
+- Test: `npm run test` (runs Vitest tests for all packages)
 - Validate: `npm run validate` (in packages/simulator - runs validation suite)
 - Lint: `npm run lint` (runs ESLint)
 - Format: `npm run format` (runs Prettier - not yet implemented)
+- Dev (API): `npm run dev` (in packages/api - starts API server with hot reload)
 
 ### Running Examples
 ```bash
@@ -105,7 +116,7 @@ npm run basic  # Run basic simulation example
 ### Monorepo Organization ✅
 The codebase is organized into packages:
 1. **simulator/**: Core logic, data structures, algorithms (TypeScript) ✅
-2. **api/**: REST API + WebSocket server (Node.js/Express) - planned for Phase 2
+2. **api/**: REST API + WebSocket server (Node.js/Express) ✅
 3. **ui/**: Visualization and controls (React or Vue.js) - planned for Phase 3
 
 ### Key Architectural Decisions (Implemented)
@@ -145,10 +156,10 @@ The codebase is organized into packages:
 ## Code Quality Standards
 
 **Testing Strategy** (Implemented) ✅:
-- **Unit Tests**: 46 passing tests covering mathematical functions, data structures, and algorithms
-- **Integration Tests**: Simulation engine tests (API/UI tests planned for Phases 2-3)
-- **Validation Tests**: Pending completion of Ticket 1.9
-- **Manual Testing**: Basic example demonstrates core functionality
+- **Unit Tests**: 46 simulator tests + 5 API tests = 51 total passing tests
+- **Integration Tests**: API integration tests with supertest
+- **Validation Tests**: Complete validation suite reproduces all paper figures
+- **Manual Testing**: Basic example and API client demonstrate functionality
 
 **Performance Targets**:
 - Support real-time simulation of 10,000+ star systems ✅ (architecture supports this)
@@ -157,34 +168,37 @@ The codebase is organized into packages:
 
 ## Important Notes for Coding Agents
 
-1. **Phase 1 Complete**: All Phase 1 Tickets 1.1-1.9 are complete, including validation. Code is working and validated against the research paper.
+1. **Phase 2 Complete**: All Phase 2 Tickets 2.1-2.5 are complete. REST API and WebSocket functionality working and tested.
 
-2. **Scientific Accuracy Maintained**: Changes to simulation logic must align with Carroll-Nellenback et al. (2019) paper. Reference FUNCTIONS_AND_ALGORITHMS.md for correct formulas.
+2. **Phase 1 Complete**: All Phase 1 Tickets 1.1-1.9 are complete, including validation. Code is working and validated against the research paper.
 
-3. **Technology Stack Established**: Using TypeScript with npm workspaces, Vitest, ESLint, and GitHub Actions. This is the established stack.
+3. **Scientific Accuracy Maintained**: Changes to simulation logic must align with Carroll-Nellenback et al. (2019) paper. Reference FUNCTIONS_AND_ALGORITHMS.md for correct formulas.
 
-4. **CI/CD Configured**: GitHub Actions workflow exists and runs on push/PR. Tests and linting run automatically.
+4. **Technology Stack Established**: Using TypeScript with npm workspaces, Vitest, ESLint, Express, Socket.io, and GitHub Actions. This is the established stack.
 
-5. **Build Infrastructure Complete**: Ticket 1.1 is done. Package builds successfully with TypeScript compiler.
+5. **CI/CD Configured**: GitHub Actions workflow exists and runs on push/PR. Tests and linting run automatically.
 
-6. **Validation Complete**: Ticket 1.9 is done. All four validation tests pass. See VALIDATION_REPORT.md.
+6. **Build Infrastructure Complete**: Both packages build successfully with TypeScript compiler.
 
-7. **Next Priority**: Starting Phase 2 (Web API) or refining existing features.
+7. **Validation Complete**: Ticket 1.9 is done. All four validation tests pass. See VALIDATION_REPORT.md.
+
+8. **Next Priority**: Starting Phase 3 (Web UI) or refining existing features.
 
 ## Common Pitfalls to Avoid
 
-- **Don't break existing tests**: 46 unit tests + 4 validation suites currently passing - maintain this
+- **Don't break existing tests**: 51 unit tests (46 simulator + 5 API) currently passing - maintain this
 - **Validation is complete**: Simulation results validated against the research paper ✅
+- **API is complete**: Phase 2 REST API and WebSocket functionality complete ✅
 - **Don't ignore performance**: Must handle 10,000+ systems efficiently ✅
 - **Don't create code without tests**: Testing infrastructure exists - use it ✅
 - **Read the paper**: FUNCTIONS_AND_ALGORITHMS.md and IMPLEMENTATION_STRATEGY.md are critical references
 
 ## Quick Reference
 
-**File Count**: 60+ files (packages, validation, tests, config, docs)
-**Lines of Code**: ~4,000 (TypeScript simulator + validation + tests)
-**Test Coverage**: 46 unit tests + 4 validation suites (all passing)
-**Implementation Tickets**: 9/9 Phase 1 tickets complete ✅
+**File Count**: 80+ files (packages, validation, tests, config, docs)
+**Lines of Code**: ~7,000 (TypeScript simulator + API + validation + tests)
+**Test Coverage**: 46 simulator tests + 5 API tests + 4 validation suites (all passing)
+**Implementation Tickets**: 14/14 Phase 1 & 2 tickets complete ✅
 **License**: MIT
 **Target Performance**: 10,000+ systems, real-time updates, <300 Myr galaxy crossing time simulation ✅
 
