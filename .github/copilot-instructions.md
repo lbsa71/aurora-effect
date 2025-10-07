@@ -4,7 +4,7 @@
 
 **Aurora Effect** is a galactic settlement simulator based on the research paper "The Fermi Paradox and the Aurora Effect: Exo-civilization Settlement, Expansion, and Steady States" by Carroll-Nellenback et al. (2019). The project simulates how space-faring civilizations spread across the galaxy, exploring solutions to the Fermi Paradox.
 
-**Current Status**: Phase 2 Complete ✅ - Core simulator library and Web API fully implemented and tested. Phase 1 (Tickets 1.1-1.9) complete with working implementation and validation. Phase 2 (Tickets 2.1-2.5) complete with REST API and WebSocket support. Ready for Phase 3 (Web UI).
+**Current Status**: Phase 3 In Progress 🚧 - Core simulator library (46 tests) and Web API (5 tests) fully implemented and tested. Phase 1 (Tickets 1.1-1.9) and Phase 2 (Tickets 2.1-2.5) complete. Currently implementing Phase 3 (Web UI) starting with Ticket 3.1.
 
 **Repository Size**: Medium (~80+ files). Active npm workspaces monorepo with TypeScript, Vitest, ESLint, and GitHub Actions CI/CD configured. Includes simulator library and Web API packages.
 
@@ -13,7 +13,7 @@
 - **Monorepo Structure**: npm workspaces ✅
 - **Simulator**: TypeScript with Vitest testing ✅
 - **API**: Node.js with Express and Socket.io ✅
-- **UI**: React or Vue.js with Canvas/WebGL (planned for Phase 3)
+- **UI**: React with Vite and TypeScript (Phase 3 in progress)
 - **Build**: TypeScript compiler (tsc) ✅
 - **Testing**: Vitest ✅
 - **CI/CD**: GitHub Actions ✅
@@ -32,6 +32,7 @@ aurora-effect/
 │   ├── IMPLEMENTATION_STRATEGY.md               # Detailed implementation plan
 │   ├── PHASE1_SUMMARY.md                        # Phase 1 completion summary
 │   ├── PHASE2_SUMMARY.md                        # Phase 2 completion summary ✅
+│   ├── PHASE3_SUMMARY.md                        # Phase 3 implementation plan 🚧
 │   └── VALIDATION_REPORT.md                     # Validation results ✅
 ├── packages/
 │   ├── simulator/                  # Core simulation library ✅
@@ -62,6 +63,19 @@ aurora-effect/
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── vitest.config.ts
+│   └── ui/                         # Web UI 🚧
+│       ├── src/
+│       │   ├── components/         # React components
+│       │   ├── hooks/              # Custom hooks
+│       │   ├── services/           # API & WebSocket clients
+│       │   ├── store/              # Zustand state
+│       │   ├── types/              # Type definitions
+│       │   ├── App.tsx
+│       │   └── main.tsx
+│       ├── public/
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── vite.config.ts
 ├── examples/                       # Example scripts ✅
 │   └── basic-simulation.ts
 ├── .gitignore
@@ -102,7 +116,9 @@ All commands run from repository root:
 - Validate: `npm run validate` (in packages/simulator - runs validation suite)
 - Lint: `npm run lint` (runs ESLint)
 - Format: `npm run format` (runs Prettier - not yet implemented)
-- Dev (API): `npm run dev` (in packages/api - starts API server with hot reload)
+- Dev (UI): `npm run dev:ui` (starts UI dev server at http://localhost:5173)
+- Dev (API): `npm run dev:api` (starts API server at http://localhost:3000)
+- Dev (Simulator): `npm run dev` (in packages/simulator)
 
 ### Running Examples
 ```bash
@@ -168,9 +184,9 @@ The codebase is organized into packages:
 
 ## Important Notes for Coding Agents
 
-1. **Phase 2 Complete**: All Phase 2 Tickets 2.1-2.5 are complete. REST API and WebSocket functionality working and tested.
+1. **Phase 3 In Progress**: Implementing Web UI. Ticket 3.1 (UI Framework Setup) complete. Basic implementations of Configuration, Controls, Metrics, and WebSocket integration working. Next: Galaxy Visualization (Ticket 3.3).
 
-2. **Phase 1 Complete**: All Phase 1 Tickets 1.1-1.9 are complete, including validation. Code is working and validated against the research paper.
+2. **Phase 1 & 2 Complete**: Phase 1 (Tickets 1.1-1.9) and Phase 2 (Tickets 2.1-2.5) are complete with 51 passing tests. Code is working and validated.
 
 3. **Scientific Accuracy Maintained**: Changes to simulation logic must align with Carroll-Nellenback et al. (2019) paper. Reference FUNCTIONS_AND_ALGORITHMS.md for correct formulas.
 
@@ -182,7 +198,7 @@ The codebase is organized into packages:
 
 7. **Validation Complete**: Ticket 1.9 is done. All four validation tests pass. See VALIDATION_REPORT.md.
 
-8. **Next Priority**: Starting Phase 3 (Web UI) or refining existing features.
+8. **Phase 3 Ticket 3.1 Complete**: UI Framework with React + Vite + TypeScript + Material-UI + Zustand working. Basic UI components functional. See PHASE3_SUMMARY.md.
 
 ## Common Pitfalls to Avoid
 
@@ -195,10 +211,10 @@ The codebase is organized into packages:
 
 ## Quick Reference
 
-**File Count**: 80+ files (packages, validation, tests, config, docs)
-**Lines of Code**: ~7,000 (TypeScript simulator + API + validation + tests)
-**Test Coverage**: 46 simulator tests + 5 API tests + 4 validation suites (all passing)
-**Implementation Tickets**: 14/14 Phase 1 & 2 tickets complete ✅
+**File Count**: 100+ files (packages including UI, validation, tests, config, docs)
+**Lines of Code**: ~12,000 (TypeScript simulator + API + UI + validation + tests)
+**Test Coverage**: 46 simulator tests + 5 API tests (all passing)
+**Implementation Tickets**: 14/14 Phase 1 & 2 tickets complete ✅, 1/8 Phase 3 tickets complete ✅
 **License**: MIT
 **Target Performance**: 10,000+ systems, real-time updates, <300 Myr galaxy crossing time simulation ✅
 

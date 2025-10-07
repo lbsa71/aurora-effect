@@ -58,6 +58,18 @@ npm run build
 npm run test
 ```
 
+### Running the Web UI
+
+```bash
+# Start the API server (in one terminal)
+npm run dev:api
+
+# Start the UI development server (in another terminal)
+npm run dev:ui
+```
+
+The UI will be available at http://localhost:5173 and the API at http://localhost:3000
+
 ### Running Examples
 
 ```bash
@@ -114,13 +126,16 @@ This is a monorepo containing three main packages:
 ```
 aurora-effect/
 ├── packages/
-│   ├── simulator/      # Core simulation library (TypeScript/Python)
+│   ├── simulator/      # Core simulation library (TypeScript)
 │   ├── api/           # Web API with WebSocket support (Node.js)
-│   └── ui/            # Web-based visualization (React/Vue)
+│   └── ui/            # Web-based visualization (React + Vite) ✨
 ├── docs/              # Documentation and research papers
 │   ├── Carroll-Nellenback_2019_AJ_158_117.pdf
 │   ├── FUNCTIONS_AND_ALGORITHMS.md
-│   └── IMPLEMENTATION_STRATEGY.md
+│   ├── IMPLEMENTATION_STRATEGY.md
+│   ├── PHASE1_SUMMARY.md
+│   ├── PHASE2_SUMMARY.md
+│   └── PHASE3_SUMMARY.md
 ├── examples/          # Example configurations and scenarios
 └── README.md
 ```
@@ -180,7 +195,7 @@ The simulator will include preset scenarios exploring:
 
 ## Development Status
 
-**Current Phase**: Phase 2 Complete! 🎉
+**Current Phase**: Phase 3 In Progress! 🚀
 
 See [IMPLEMENTATION_STRATEGY.md](docs/IMPLEMENTATION_STRATEGY.md) for the complete development roadmap.
 
@@ -237,19 +252,36 @@ The simulator has been **validated against key results** from Carroll-Nellenback
 **Run validation**: `npm run validate` in `packages/simulator`  
 **See full report**: [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md)
 
+### 🚧 Phase 3: Web UI (IN PROGRESS)
+- ✅ Ticket 3.1: UI Framework Setup (complete!)
+  - React 19 + TypeScript + Vite
+  - Material-UI components
+  - Zustand state management
+  - Socket.io WebSocket client
+  - API client service
+- 🚧 Ticket 3.2: Configuration Interface (basic version complete)
+- ⏳ Ticket 3.3: Galaxy Visualization Canvas
+- 🚧 Ticket 3.4: Simulation Controls (basic version complete)
+- 🚧 Ticket 3.5: Real-time Updates Integration (basic version complete)
+- 🚧 Ticket 3.6: Metrics Dashboard (basic version complete)
+- ⏳ Ticket 3.7: Civilization Legend
+
+**Status**: Basic UI framework complete! See [docs/PHASE3_SUMMARY.md](docs/PHASE3_SUMMARY.md) for detailed plan!
+
+![Aurora Effect UI Screenshot](https://github.com/user-attachments/assets/66f83198-c8a0-411b-a63c-9b49f648f73b)
+
 ### Next Steps
-- 🔄 Phase 3: Web UI (React/Vue with 3D visualization)
-- 🔄 Phase 4: Advanced Features (multiple civilizations, optimizations)
-- 🔄 Phase 5: Documentation and Polish
+- ⏳ Phase 4: Advanced Features (multiple civilizations, optimizations)
+- ⏳ Phase 5: Documentation and Polish
 
 ## Technology Stack
 
-- **Simulator**: TypeScript or Python with NumPy
-- **API**: Node.js with Express and Socket.io
-- **UI**: React or Vue.js with Canvas/WebGL
-- **Build**: Turborepo or Nx
-- **Testing**: Jest/Vitest, Pytest
-- **CI/CD**: GitHub Actions
+- **Simulator**: TypeScript with Vitest ✅
+- **API**: Node.js with Express and Socket.io ✅
+- **UI**: React with Vite and TypeScript (in progress)
+- **Build**: npm workspaces ✅
+- **Testing**: Vitest ✅
+- **CI/CD**: GitHub Actions ✅
 
 ## Contributing
 
