@@ -218,9 +218,13 @@ function processCivilizationDeaths(state: SimulationState, config: SimulationCon
     if (age >= config.civilizationLifetime) {
       // System dies
       system.status = SettlementStatus.UNSETTLED;
+      const deadCivId = system.civilizationId;
       system.civilizationId = null;
       system.settlementTime = null;
       system.lastLaunchTime = null;
+
+      // Cancel any probes from this civilization targeting this system
+      state.probes = state.probes.filter((p) => p.targetSystemId !== system.id || p.civilizationId !== deadCivId);
     }
   }
 
