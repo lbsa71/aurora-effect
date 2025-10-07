@@ -147,3 +147,9 @@ The codebase will be split into three packages (not yet created):
 **Implementation Tickets**: 30+ tickets across 5 phases
 **License**: MIT
 **Target Performance**: 10,000+ systems, real-time updates, <300 Myr galaxy crossing time simulation
+
+## Update Requirements
+ALWAYS end your work with reviewing and updating these files:
+- README.md
+- docs/IMPLEMENTATION_STRATEGY.md
+- .github/copilot-instructions.md (But MUST retain these Update Requirements)
