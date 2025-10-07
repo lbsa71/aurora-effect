@@ -78,17 +78,20 @@ The UI will be available at http://localhost:5173 and the API at http://localhos
 The easiest way to run the entire application is using Docker Compose:
 
 ```bash
-# Build and start all services
-docker-compose up
+# First, build the application
+./docker-build.sh
 
-# Run in detached mode
-docker-compose up -d
+# Then build and start all services
+docker compose up
+
+# Or run in detached mode
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop services
-docker-compose down
+docker compose down
 ```
 
 The UI will be available at http://localhost and the API at http://localhost:3000
@@ -98,6 +101,9 @@ The UI will be available at http://localhost and the API at http://localhost:300
 You can also build and run individual services:
 
 ```bash
+# Build the application first
+./docker-build.sh
+
 # Build API image
 docker build -f packages/api/Dockerfile -t aurora-api .
 
@@ -122,6 +128,8 @@ docker run -p 80:80 aurora-ui
 
 **UI Service:**
 - `VITE_API_URL` - API server URL (default: http://localhost:3000)
+
+**Note**: The Docker build process requires pre-built application code. Run `./docker-build.sh` to build the application before building Docker images.
 
 ### Running Examples
 

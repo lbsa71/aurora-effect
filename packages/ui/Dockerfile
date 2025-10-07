@@ -1,27 +1,8 @@
-# Build stage
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy workspace package files
-COPY package*.json ./
-COPY packages/ui/package*.json ./packages/ui/
-
-# Install dependencies
-RUN npm ci --workspace=packages/ui
-
-# Copy source code
-COPY packages/ui ./packages/ui
-
-# Build the application
-WORKDIR /app/packages/ui
-RUN npm run build
-
 # Production stage - Serve with nginx
 FROM nginx:alpine
 
-# Copy built files from builder
-COPY --from=builder /app/packages/ui/dist /usr/share/nginx/html
+# Copy pre-built files (run npm run build --workspace=packages/ui before docker build)
+COPY packages/ui/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY packages/ui/nginx.conf /etc/nginx/conf.d/default.conf
