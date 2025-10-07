@@ -33,11 +33,14 @@ The Aurora Effect simulator will provide:
 - **Data export**: Export simulation data for further analysis
 
 ### Interactive Visualization
-- **3D galaxy view**: Visualize the distribution of settled, unsettled, and targeted star systems
-- **Real-time animation**: Watch civilizations expand across the galaxy
-- **Civilization tracking**: Color-coded display of multiple civilizations with interactive legend
-- **Metrics dashboard**: Live charts showing settlement fraction, front speed, and other key metrics
-- **Playback controls**: Start, pause, resume, and adjust simulation speed
+- **WebGPU-accelerated rendering**: High-performance 3D galaxy visualization with Canvas 2D fallback
+- **Multiple view modes**: 3D perspective or 2D projections (XY, XZ, YZ planes)
+- **Interactive camera**: Drag to rotate, scroll to zoom, with reset and auto-rotate features
+- **Real-time updates**: Watch civilizations expand across the galaxy as simulation progresses
+- **Color-coded systems**: Distinct colors for settled, targeted, settleable, and unsettleable systems
+- **Civilization tracking**: Unique colors for each civilization using golden angle distribution
+- **Metrics overlay**: Live display of system counts and active civilizations
+- **Performance optimized**: Smooth 60 fps rendering for 10,000+ star systems
 
 ## Quick Start
 

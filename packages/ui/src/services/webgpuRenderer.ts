@@ -1,0 +1,491 @@
+/**
+ * WebGPU renderer for galaxy visualization
+ * Handles efficient rendering of 10,000+ star systems using GPU instancing
+ */
+
+/// <reference types="@webgpu/types" />
+
+import type { StarSystem, ViewMode, CameraState } from '../types';
+
+interface RenderOptions {
+  viewMode: ViewMode;
+  camera: CameraState;
+  colorByCivilization: boolean;
+  boxSize: number;
+}
+
+// Vertex shader for point rendering
+const vertexShaderCode = `
+struct Uniforms {
+  projectionMatrix: mat4x4<f32>,
+  viewMatrix: mat4x4<f32>,
+  pointSize: f32,
+  boxSize: f32,
+}
+
+struct VertexInput {
+  @location(0) position: vec3<f32>,
+  @location(1) color: vec4<f32>,
+}
+
+struct VertexOutput {
+  @builtin(position) position: vec4<f32>,
+  @location(0) color: vec4<f32>,
+  @location(1) pointCoord: vec2<f32>,
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+
+@vertex
+fn vertexMain(input: VertexInput, @builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+  var output: VertexOutput;
+  
+  // Transform position
+  let worldPos = vec4<f32>(input.position, 1.0);
+  let viewPos = uniforms.viewMatrix * worldPos;
+  output.position = uniforms.projectionMatrix * viewPos;
+  
+  // Point sprite coordinates
+  let offset = array<vec2<f32>, 4>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>( 1.0,  1.0)
+  );
+  
+  let cornerOffset = offset[vertexIndex % 4u];
+  output.position.x += cornerOffset.x * uniforms.pointSize / output.position.w;
+  output.position.y += cornerOffset.y * uniforms.pointSize / output.position.w;
+  
+  output.color = input.color;
+  output.pointCoord = cornerOffset * 0.5 + 0.5;
+  
+  return output;
+}
+`;
+
+// Fragment shader for point rendering
+const fragmentShaderCode = `
+struct FragmentInput {
+  @location(0) color: vec4<f32>,
+  @location(1) pointCoord: vec2<f32>,
+}
+
+@fragment
+fn fragmentMain(input: FragmentInput) -> @location(0) vec4<f32> {
+  // Circular point shape
+  let dist = length(input.pointCoord - vec2<f32>(0.5, 0.5));
+  if (dist > 0.5) {
+    discard;
+  }
+  
+  // Soft edges with alpha falloff
+  let alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+  return vec4<f32>(input.color.rgb, input.color.a * alpha);
+}
+`;
+
+export class WebGPURenderer {
+  private device: GPUDevice | null = null;
+  private context: GPUCanvasContext | null = null;
+  private pipeline: GPURenderPipeline | null = null;
+  private uniformBuffer: GPUBuffer | null = null;
+  private bindGroup: GPUBindGroup | null = null;
+  private vertexBuffer: GPUBuffer | null = null;
+  private colorBuffer: GPUBuffer | null = null;
+  private vertexCount = 0;
+
+  async initialize(canvas: HTMLCanvasElement): Promise<boolean> {
+    // Check for WebGPU support
+    if (!navigator.gpu) {
+      console.warn('WebGPU not supported on this browser.');
+      return false;
+    }
+
+    try {
+      // Request adapter and device
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        console.warn('Failed to get WebGPU adapter.');
+        return false;
+      }
+
+      this.device = await adapter.requestDevice();
+      
+      // Configure canvas context
+      this.context = canvas.getContext('webgpu');
+      if (!this.context) {
+        console.warn('Failed to get WebGPU context.');
+        return false;
+      }
+
+      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      this.context.configure({
+        device: this.device,
+        format: presentationFormat,
+        alphaMode: 'premultiplied',
+      });
+
+      // Create shader modules
+      const vertexShaderModule = this.device.createShaderModule({
+        code: vertexShaderCode,
+      });
+
+      const fragmentShaderModule = this.device.createShaderModule({
+        code: fragmentShaderCode,
+      });
+
+      // Create uniform buffer
+      this.uniformBuffer = this.device.createBuffer({
+        size: 144, // 2x mat4x4 + 2x f32 + padding
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      // Create bind group layout
+      const bindGroupLayout = this.device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: { type: 'uniform' },
+          },
+        ],
+      });
+
+      // Create bind group
+      this.bindGroup = this.device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [
+          {
+            binding: 0,
+            resource: { buffer: this.uniformBuffer },
+          },
+        ],
+      });
+
+      // Create pipeline
+      this.pipeline = this.device.createRenderPipeline({
+        layout: this.device.createPipelineLayout({
+          bindGroupLayouts: [bindGroupLayout],
+        }),
+        vertex: {
+          module: vertexShaderModule,
+          entryPoint: 'vertexMain',
+          buffers: [
+            {
+              arrayStride: 12, // vec3<f32>
+              attributes: [
+                {
+                  shaderLocation: 0,
+                  offset: 0,
+                  format: 'float32x3',
+                },
+              ],
+            },
+            {
+              arrayStride: 16, // vec4<f32>
+              attributes: [
+                {
+                  shaderLocation: 1,
+                  offset: 0,
+                  format: 'float32x4',
+                },
+              ],
+            },
+          ],
+        },
+        fragment: {
+          module: fragmentShaderModule,
+          entryPoint: 'fragmentMain',
+          targets: [
+            {
+              format: presentationFormat,
+              blend: {
+                color: {
+                  srcFactor: 'src-alpha',
+                  dstFactor: 'one-minus-src-alpha',
+                  operation: 'add',
+                },
+                alpha: {
+                  srcFactor: 'one',
+                  dstFactor: 'one-minus-src-alpha',
+                  operation: 'add',
+                },
+              },
+            },
+          ],
+        },
+        primitive: {
+          topology: 'triangle-strip',
+        },
+        depthStencil: {
+          format: 'depth24plus',
+          depthWriteEnabled: true,
+          depthCompare: 'less',
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize WebGPU:', error);
+      return false;
+    }
+  }
+
+  updateGeometry(systems: StarSystem[], colorByCivilization: boolean): void {
+    if (!this.device || systems.length === 0) return;
+
+    const positions: number[] = [];
+    const colors: number[] = [];
+
+    // Generate civilization colors
+    const civColors = new Map<number, [number, number, number]>();
+    
+    for (const system of systems) {
+      // Add position
+      positions.push(...system.position);
+
+      // Determine color based on state
+      let color: [number, number, number, number];
+      
+      if (system.isSettled) {
+        if (colorByCivilization && system.civilizationId !== undefined) {
+          // Get or generate color for civilization
+          if (!civColors.has(system.civilizationId)) {
+            const hue = (system.civilizationId * 137.5) % 360; // Golden angle
+            civColors.set(system.civilizationId, this.hslToRgb(hue, 0.7, 0.6));
+          }
+          const rgb = civColors.get(system.civilizationId)!;
+          color = [...rgb, 1.0];
+        } else {
+          color = [1.0, 0.3, 0.3, 1.0]; // Red for settled
+        }
+      } else if (system.isTargeted) {
+        color = [0.3, 1.0, 0.3, 1.0]; // Green for targeted
+      } else if (system.isSettleable) {
+        color = [0.5, 0.7, 1.0, 1.0]; // Light blue for settleable
+      } else {
+        color = [0.3, 0.3, 0.3, 0.5]; // Gray for unsettleable
+      }
+
+      colors.push(...color);
+    }
+
+    // Create or update vertex buffer
+    if (this.vertexBuffer) {
+      this.vertexBuffer.destroy();
+    }
+    this.vertexBuffer = this.device.createBuffer({
+      size: positions.length * 4,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.vertexBuffer.getMappedRange()).set(positions);
+    this.vertexBuffer.unmap();
+
+    // Create or update color buffer
+    if (this.colorBuffer) {
+      this.colorBuffer.destroy();
+    }
+    this.colorBuffer = this.device.createBuffer({
+      size: colors.length * 4,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.colorBuffer.getMappedRange()).set(colors);
+    this.colorBuffer.unmap();
+
+    this.vertexCount = systems.length * 4; // 4 vertices per point (triangle strip)
+  }
+
+  render(options: RenderOptions, width: number, height: number): void {
+    if (!this.device || !this.context || !this.pipeline || !this.bindGroup) {
+      return;
+    }
+
+    if (!this.vertexBuffer || !this.colorBuffer || this.vertexCount === 0) {
+      return;
+    }
+
+    // Update uniforms
+    const uniformData = new Float32Array(36);
+    
+    // Projection matrix
+    const aspect = width / height;
+    const projectionMatrix = this.createProjectionMatrix(options.viewMode, aspect, options.camera);
+    uniformData.set(projectionMatrix, 0);
+    
+    // View matrix
+    const viewMatrix = this.createViewMatrix(options.viewMode, options.camera);
+    uniformData.set(viewMatrix, 16);
+    
+    // Point size and box size
+    uniformData[32] = 0.01 * options.camera.zoom; // Point size
+    uniformData[33] = options.boxSize;
+
+    this.device.queue.writeBuffer(this.uniformBuffer!, 0, uniformData);
+
+    // Create command encoder
+    const commandEncoder = this.device.createCommandEncoder();
+    
+    const textureView = this.context.getCurrentTexture().createView();
+    
+    // Create depth texture
+    const depthTexture = this.device.createTexture({
+      size: { width, height },
+      format: 'depth24plus',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
+    const renderPass = commandEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: { r: 0.05, g: 0.05, b: 0.1, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
+      depthStencilAttachment: {
+        view: depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: 'clear',
+        depthStoreOp: 'store',
+      },
+    });
+
+    renderPass.setPipeline(this.pipeline);
+    renderPass.setBindGroup(0, this.bindGroup);
+    renderPass.setVertexBuffer(0, this.vertexBuffer);
+    renderPass.setVertexBuffer(1, this.colorBuffer);
+    renderPass.draw(this.vertexCount);
+    renderPass.end();
+
+    this.device.queue.submit([commandEncoder.finish()]);
+    
+    depthTexture.destroy();
+  }
+
+  private createProjectionMatrix(viewMode: ViewMode, aspect: number, camera: CameraState): Float32Array {
+    const fov = Math.PI / 4; // 45 degrees
+    const near = 0.1;
+    const far = 1000;
+    
+    if (viewMode === '3D') {
+      return this.perspectiveMatrix(fov, aspect, near, far);
+    } else {
+      // Orthographic projection for 2D views
+      const size = 100 / camera.zoom;
+      return this.orthographicMatrix(-size * aspect, size * aspect, -size, size, near, far);
+    }
+  }
+
+  private createViewMatrix(viewMode: ViewMode, camera: CameraState): Float32Array {
+    const pos = camera.position;
+    const target = camera.target;
+    
+    if (viewMode === '3D') {
+      return this.lookAtMatrix(pos, target, [0, 1, 0]);
+    } else {
+      // For 2D views, adjust camera position based on plane
+      let adjustedPos: [number, number, number];
+      switch (viewMode) {
+        case '2D-XY':
+          adjustedPos = [target[0], target[1], 100];
+          break;
+        case '2D-XZ':
+          adjustedPos = [target[0], 100, target[2]];
+          break;
+        case '2D-YZ':
+          adjustedPos = [100, target[1], target[2]];
+          break;
+        default:
+          adjustedPos = pos;
+      }
+      return this.lookAtMatrix(adjustedPos, target, [0, 1, 0]);
+    }
+  }
+
+  private perspectiveMatrix(fov: number, aspect: number, near: number, far: number): Float32Array {
+    const f = 1.0 / Math.tan(fov / 2);
+    const rangeInv = 1.0 / (near - far);
+
+    return new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (near + far) * rangeInv, -1,
+      0, 0, near * far * rangeInv * 2, 0,
+    ]);
+  }
+
+  private orthographicMatrix(left: number, right: number, bottom: number, top: number, near: number, far: number): Float32Array {
+    const lr = 1 / (left - right);
+    const bt = 1 / (bottom - top);
+    const nf = 1 / (near - far);
+
+    return new Float32Array([
+      -2 * lr, 0, 0, 0,
+      0, -2 * bt, 0, 0,
+      0, 0, 2 * nf, 0,
+      (left + right) * lr, (top + bottom) * bt, (far + near) * nf, 1,
+    ]);
+  }
+
+  private lookAtMatrix(eye: [number, number, number], target: [number, number, number], up: [number, number, number]): Float32Array {
+    const zAxis = this.normalize([
+      eye[0] - target[0],
+      eye[1] - target[1],
+      eye[2] - target[2],
+    ]);
+    const xAxis = this.normalize(this.cross(up, zAxis));
+    const yAxis = this.cross(zAxis, xAxis);
+
+    return new Float32Array([
+      xAxis[0], yAxis[0], zAxis[0], 0,
+      xAxis[1], yAxis[1], zAxis[1], 0,
+      xAxis[2], yAxis[2], zAxis[2], 0,
+      -this.dot(xAxis, eye), -this.dot(yAxis, eye), -this.dot(zAxis, eye), 1,
+    ]);
+  }
+
+  private normalize(v: number[]): [number, number, number] {
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    return len > 0 ? [v[0] / len, v[1] / len, v[2] / len] : [0, 0, 0];
+  }
+
+  private cross(a: number[], b: number[]): [number, number, number] {
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
+  }
+
+  private dot(a: number[], b: number[]): number {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  }
+
+  private hslToRgb(h: number, s: number, l: number): [number, number, number] {
+    h = h / 360;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+    const m = l - c / 2;
+
+    let r = 0, g = 0, b = 0;
+    if (h < 1/6) { r = c; g = x; b = 0; }
+    else if (h < 2/6) { r = x; g = c; b = 0; }
+    else if (h < 3/6) { r = 0; g = c; b = x; }
+    else if (h < 4/6) { r = 0; g = x; b = c; }
+    else if (h < 5/6) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+
+    return [r + m, g + m, b + m];
+  }
+
+  destroy(): void {
+    this.vertexBuffer?.destroy();
+    this.colorBuffer?.destroy();
+    this.uniformBuffer?.destroy();
+    this.device?.destroy();
+  }
+}
