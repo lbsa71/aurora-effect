@@ -1,0 +1,12 @@
+{
+  "name": "aurora-effect-examples",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Examples for the Aurora Effect simulator",
+  "scripts": {
+    "basic": "tsx basic-simulation.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0"
+  }
+}

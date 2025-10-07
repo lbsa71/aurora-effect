@@ -41,7 +41,7 @@ The Aurora Effect simulator will provide:
 
 ## Quick Start
 
-*(Coming soon - project is currently in the planning phase)*
+### Installation
 
 ```bash
 # Clone the repository
@@ -51,10 +51,60 @@ cd aurora-effect
 # Install dependencies
 npm install
 
-# Start the development environment
-npm run dev
+# Build the packages
+npm run build
 
-# Open your browser to http://localhost:3000
+# Run tests
+npm run test
+```
+
+### Running Examples
+
+```bash
+# Navigate to examples directory
+cd examples
+npm install
+
+# Run the basic simulation example
+npm run basic
+```
+
+### Using the Simulator Library
+
+```typescript
+import {
+  SimulationConfig,
+  initializeSystems,
+  initializeCivilization,
+  createSimulationState,
+  runSimulation,
+} from '@aurora-effect/simulator';
+
+// Define configuration
+const config: SimulationConfig = {
+  numSystems: 1000,
+  boxSize: { x: 100, y: 100, z: 100 },
+  density: 0.08,
+  settleableFraction: 0.2,
+  stellarVelocity: 30,
+  probeVelocity: 0.01,
+  probeRange: 10,
+  probeLaunchPeriod: 100,
+  civilizationLifetime: 0,
+  initialSettledFraction: 0.01,
+  timeStep: 100,
+};
+
+// Initialize systems and civilization
+let systems = initializeSystems(config);
+const result = initializeCivilization(systems, 1, 0, 0, '#00ff00');
+systems = result.systems;
+
+// Create and run simulation
+const state = createSimulationState(systems, [result.civilization]);
+runSimulation(state, config, 10000);
+
+console.log(`Settled fraction: ${state.metrics.settledFraction}`);
 ```
 
 ## Project Structure
@@ -130,7 +180,7 @@ The simulator will include preset scenarios exploring:
 
 ## Development Status
 
-**Current Phase**: Planning and Architecture
+**Current Phase**: Phase 1 Implementation (Core Simulator)
 
 See [IMPLEMENTATION_STRATEGY.md](docs/IMPLEMENTATION_STRATEGY.md) for the complete development roadmap.
 
@@ -139,12 +189,22 @@ See [IMPLEMENTATION_STRATEGY.md](docs/IMPLEMENTATION_STRATEGY.md) for the comple
 - ✅ Mathematical model extraction
 - ✅ Architecture design
 - ✅ Implementation strategy
+- ✅ Ticket 1.1: Project setup and infrastructure
+- ✅ Ticket 1.2: Core data structures
+- ✅ Ticket 1.3: System initialization
+- ✅ Ticket 1.4: Probe targeting algorithm
+- ✅ Ticket 1.5: Simulation time stepping
+- ✅ Ticket 1.6: Analytical models
+- ✅ Ticket 1.7: Civilization lifetime dynamics
+- ✅ Ticket 1.8: Metrics and analysis (partial)
+
+### In Progress
+- 🔄 Ticket 1.9: Validation against paper results
 
 ### Next Steps
-- 🔄 Set up monorepo infrastructure
-- 🔄 Implement core simulator library
-- 🔄 Build Web API
-- 🔄 Create visualization UI
+- 🔄 Complete validation against paper
+- 🔄 Build Web API (Phase 2)
+- 🔄 Create visualization UI (Phase 3)
 
 ## Technology Stack
 
