@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - CORS_ORIGIN=http://localhost
+      - CORS_ORIGIN=https://aurora-effect.lbsa71.net
       - MAX_SIMULATIONS=10
       - UPDATE_INTERVAL_MS=100
     healthcheck:

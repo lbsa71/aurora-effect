@@ -13,6 +13,11 @@ COPY packages/simulator/dist ./packages/simulator/dist
 COPY packages/api/dist ./packages/api/dist
 COPY node_modules ./node_modules
 
+# Create a proper package for the simulator in node_modules
+RUN mkdir -p ./node_modules/@aurora-effect/simulator && \
+    cp -r ./packages/simulator/dist/* ./node_modules/@aurora-effect/simulator/ && \
+    cp ./packages/simulator/package.json ./node_modules/@aurora-effect/simulator/
+
 # Set working directory
 WORKDIR /app/packages/api
 

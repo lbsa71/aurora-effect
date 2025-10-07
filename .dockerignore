@@ -49,3 +49,6 @@ examples
 tmp
 temp
 *.tmp
+
+# Workspace symlinks that cause Docker issues
+node_modules/@aurora-effect
