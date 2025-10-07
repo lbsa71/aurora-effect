@@ -16,7 +16,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "composite": true
   },
   "include": ["src/**/*", "validation/**/*"],
   "exclude": ["node_modules", "dist", "tests"]
