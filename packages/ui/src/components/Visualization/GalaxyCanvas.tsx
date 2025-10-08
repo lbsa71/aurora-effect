@@ -25,6 +25,8 @@ export const GalaxyCanvas = () => {
   const viewMode = useVisualizationStore((state) => state.viewMode);
   const camera = useVisualizationStore((state) => state.camera);
   const colorByCivilization = useVisualizationStore((state) => state.colorByCivilization);
+  const pointSizeScale = useVisualizationStore((state) => state.pointSizeScale);
+  const brightness = useVisualizationStore((state) => state.brightness);
   const autoRotate = useVisualizationStore((state) => state.autoRotate);
   const setCamera = useVisualizationStore((state) => state.setCamera);
 
@@ -62,6 +64,59 @@ export const GalaxyCanvas = () => {
       rendererRef.current.updateGeometry(snapshot.systems, colorByCivilization);
     }
   }, [snapshot, colorByCivilization]);
+
+  // Compute real-data bounding box for overlay and camera fitting
+  const bbox = React.useMemo(() => {
+    const systems = snapshot?.systems || [];
+    if (systems.length === 0) return null;
+
+    const toVec3 = (pos: unknown): [number, number, number] | null => {
+      if (Array.isArray(pos) && pos.length >= 3) {
+        const x = Number(pos[0]); const y = Number(pos[1]); const z = Number(pos[2]);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? [x, y, z] : null;
+      }
+      if (pos && typeof pos === 'object') {
+        const anyPos = pos as Record<string, unknown>;
+        const x = Number(anyPos.x); const y = Number(anyPos.y); const z = Number(anyPos.z);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? [x, y, z] : null;
+      }
+      return null;
+    };
+
+    const pts: [number, number, number][] = [];
+    for (const s of systems) {
+      const p = toVec3((s as any).position);
+      if (p) pts.push(p);
+    }
+    if (pts.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (const p of pts) {
+      if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+      if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+      if (p[2] < minZ) minZ = p[2]; if (p[2] > maxZ) maxZ = p[2];
+    }
+    const center: [number, number, number] = [
+      (minX + maxX) / 2,
+      (minY + maxY) / 2,
+      (minZ + maxZ) / 2,
+    ];
+    const size: [number, number, number] = [maxX - minX, maxY - minY, maxZ - minZ];
+
+    return { min: [minX, minY, minZ] as [number, number, number], max: [maxX, maxY, maxZ] as [number, number, number], center, size, count: pts.length };
+  }, [snapshot]);
+
+  // Auto-fit camera once when real data first appears (renderer recenters cloud around origin)
+  useEffect(() => {
+    if (!bbox) return;
+    // Since renderer recenters geometry to origin, target should be [0,0,0]
+    const maxExtent = Math.max(bbox.size[0], bbox.size[1], bbox.size[2]);
+    const distance = Math.max(100, maxExtent * 1.5);
+    setCamera({ target: [0, 0, 0], position: [0, 0, distance], zoom: 1 });
+  // run only when we first get a bbox
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!bbox]);
 
   // Auto-rotation effect (requestAnimationFrame-based)
   useEffect(() => {
@@ -116,13 +171,15 @@ export const GalaxyCanvas = () => {
         camera,
         colorByCivilization,
         boxSize,
+        pointSizeScale,
+        brightness,
       },
       canvas.width,
       canvas.height
     );
 
     animationFrameRef.current = requestAnimationFrame(render);
-  }, [viewMode, camera, colorByCivilization, currentSimulation]);
+  }, [viewMode, camera, colorByCivilization, currentSimulation, pointSizeScale, brightness]);
 
   // Start render loop when renderer becomes available or render deps change
   useEffect(() => {
@@ -278,6 +335,26 @@ export const GalaxyCanvas = () => {
           🚀 WebGPU | 
           Systems: {snapshot.systems.length} | Settled: {snapshot.metrics.settledCount} | 
           Active Civs: {snapshot.metrics.activeCivilizations}
+        </Box>
+      )}
+
+      {/* Bounding box overlay (real data) */}
+      {bbox && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 8,
+            left: 8,
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
+            fontSize: '0.75rem',
+            fontFamily: 'monospace',
+          }}
+        >
+          bbox center: [{bbox.center.map(v => v.toFixed(1)).join(', ')}] | size: [{bbox.size.map(v => v.toFixed(1)).join(', ')}] | n={bbox.count}
         </Box>
       )}
       

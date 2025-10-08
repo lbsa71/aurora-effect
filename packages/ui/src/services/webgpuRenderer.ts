@@ -12,6 +12,9 @@ interface RenderOptions {
   camera: CameraState;
   colorByCivilization: boolean;
   boxSize: number;
+  // UI-driven
+  pointSizeScale?: number;
+  brightness?: number;
 }
 
 // Vertex shader for point rendering
@@ -75,13 +78,15 @@ struct FragmentInput {
 fn fragmentMain(input: FragmentInput) -> @location(0) vec4<f32> {
   // Circular point shape
   let dist = length(input.pointCoord - vec2<f32>(0.5, 0.5));
-  if (dist > 0.5) {
+  if (dist > 0.55) {
     discard;
   }
   
-  // Soft edges with alpha falloff
-  let alpha = 1.0 - smoothstep(0.3, 0.5, dist);
-  return vec4<f32>(input.color.rgb, input.color.a * alpha);
+  // Brighter core with softer, less aggressive falloff
+  let edge = smoothstep(0.45, 0.55, dist);
+  let alpha = mix(1.0, 0.85, edge);
+  let brightness = mix(1.3, 1.0, edge); // slight bloom towards center
+  return vec4<f32>(min(input.color.rgb * brightness, vec3<f32>(1.0)), input.color.a * alpha);
 }
 `;
 
@@ -281,13 +286,74 @@ export class WebGPURenderer {
     }
   }
 
-  updateGeometry(_systems: StarSystem[], colorByCivilization: boolean): void {
+  updateGeometry(systems: StarSystem[], colorByCivilization: boolean): void {
     if (!this.device) return;
 
-    // Always use test data for now - real simulation data will be handled separately
-    const testSystems = this.createTestSystems();
+    // Use real data if available, otherwise fall back to test data
+    const systemsToUse = systems.length > 0 ? systems : this.createTestSystems();
     
-    const positions: number[] = [];
+    console.log(`[WebGPU] Using ${systemsToUse.length} systems (${systems.length > 0 ? 'real' : 'test'} data)`);
+    
+    // Coerce positions and filter invalid entries
+    const coerceToVec3 = (pos: unknown): [number, number, number] | null => {
+      if (Array.isArray(pos) && pos.length >= 3) {
+        const x = Number(pos[0]);
+        const y = Number(pos[1]);
+        const z = Number(pos[2]);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? [x, y, z] : null;
+      }
+      if (pos && typeof pos === 'object') {
+        const anyPos = pos as Record<string, unknown>;
+        const x = Number(anyPos.x);
+        const y = Number(anyPos.y);
+        const z = Number(anyPos.z);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? [x, y, z] : null;
+      }
+      return null;
+    };
+
+    const coercedPositions: [number, number, number][] = [];
+    for (const s of systemsToUse) {
+      const p = coerceToVec3((s as any).position);
+      if (p) coercedPositions.push(p);
+    }
+
+    if (coercedPositions.length === 0) {
+      console.warn('[WebGPU] No valid positions after coercion; skipping geometry update');
+      return;
+    }
+
+    // Calculate bounding box for debugging (robust to non-finite values)
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let validForBounds = 0;
+    for (const p of coercedPositions) {
+      const x = p[0], y = p[1], z = p[2];
+      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+        validForBounds++;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+    }
+    if (validForBounds === 0 || !Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(minZ) || !Number.isFinite(maxX) || !Number.isFinite(maxY) || !Number.isFinite(maxZ)) {
+      console.warn('[WebGPU] No finite positions for bounds; skipping geometry update');
+      return;
+    }
+    const boundingBox = {
+      min: [minX, minY, minZ] as [number, number, number],
+      max: [maxX, maxY, maxZ] as [number, number, number],
+      center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2] as [number, number, number],
+      size: [maxX - minX, maxY - minY, maxZ - minZ] as [number, number, number],
+      count: coercedPositions.length,
+      invalidCount: systemsToUse.length - coercedPositions.length,
+    };
+    console.log('[WebGPU] Bounding box:', boundingBox);
+    
+    const vertexPositions: number[] = [];
     const colors: number[] = [];
 
     // Generate civilization colors
@@ -295,34 +361,21 @@ export class WebGPURenderer {
     
     // Compute centroid to recenter the cloud near the origin for visibility
     let sumX = 0, sumY = 0, sumZ = 0;
-    for (const s of testSystems) {
-      const p = (Array.isArray(s.position)
-        ? s.position
-        : [
-            (s.position as any).x,
-            (s.position as any).y,
-            (s.position as any).z,
-          ]) as [number, number, number];
+    for (const p of coercedPositions) {
       sumX += p[0];
       sumY += p[1];
       sumZ += p[2];
     }
-    const invCount = 1 / testSystems.length;
+    const invCount = 1 / coercedPositions.length;
     const cx = sumX * invCount;
     const cy = sumY * invCount;
     const cz = sumZ * invCount;
 
-    for (const system of testSystems) {
-      // Add position (support tuple [x,y,z] or object {x,y,z})
-      const pos = (Array.isArray(system.position)
-        ? system.position
-        : [
-            (system.position as any).x,
-            (system.position as any).y,
-            (system.position as any).z,
-          ]) as [number, number, number];
+    for (let i = 0; i < coercedPositions.length; i++) {
+      const system = systemsToUse[i];
+      const pos = coercedPositions[i];
       // Recenter around centroid so the camera points to the cloud
-      positions.push(pos[0] - cx, pos[1] - cy, pos[2] - cz);
+      vertexPositions.push(pos[0] - cx, pos[1] - cy, pos[2] - cz);
 
       // Determine color based on state
       let color: [number, number, number, number];
@@ -355,12 +408,12 @@ export class WebGPURenderer {
       this.vertexBuffer.destroy();
     }
     this.vertexBuffer = this.device.createBuffer({
-      size: positions.length * 4,
+      size: vertexPositions.length * 4,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
       label: 'positions-buffer',
     });
-    new Float32Array(this.vertexBuffer.getMappedRange()).set(positions);
+    new Float32Array(this.vertexBuffer.getMappedRange()).set(vertexPositions);
     this.vertexBuffer.unmap();
 
     // Create or update color buffer
@@ -377,7 +430,7 @@ export class WebGPURenderer {
     this.colorBuffer.unmap();
 
     // One instance per system; 4 vertices will be drawn per instance
-    this.vertexCount = testSystems.length;
+    this.vertexCount = coercedPositions.length;
   }
 
   private createTestSystems(): StarSystem[] {
@@ -453,8 +506,9 @@ export class WebGPURenderer {
     const viewMatrix = this.createViewMatrix(options.viewMode, options.camera);
     uniformData.set(viewMatrix, 16);
     
-    // Point size (in clip-space-ish units): Much larger for visibility
-    uniformData[32] = Math.max(0.2, 5.0 / Math.max(0.1, options.camera.zoom));
+    // Point size (in clip-space-ish units): increase for visibility (auto scales with zoom)
+    const sizeScale = options.pointSizeScale ?? 1.0;
+    uniformData[32] = Math.max(0.3, (9.0 * sizeScale) / Math.max(0.1, options.camera.zoom));
     uniformData[33] = options.boxSize;
     
     // Debug camera info occasionally
