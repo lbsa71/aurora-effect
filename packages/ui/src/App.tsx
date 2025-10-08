@@ -10,7 +10,7 @@ function App() {
   return (
     <Layout>
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Visualization />
@@ -21,7 +21,7 @@ function App() {
           </Grid>
         </Grid>
         
-        <Grid item xs={12} lg={4}>
+        <Grid item xs={12}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Controls />

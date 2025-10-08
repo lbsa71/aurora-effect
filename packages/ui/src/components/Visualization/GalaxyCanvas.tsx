@@ -6,17 +6,19 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { WebGPURenderer } from '../../services/webgpuRenderer';
-import { Canvas2DRenderer } from '../../services/canvas2dRenderer';
 import { useSimulationStore } from '../../store/simulation';
 import { useVisualizationStore } from '../../store/visualization';
 
-type Renderer = WebGPURenderer | Canvas2DRenderer;
-
 export const GalaxyCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<Renderer | null>(null);
-  const animationFrameRef = useRef<number>();
-  const [rendererType, setRendererType] = React.useState<'webgpu' | 'canvas2d' | null>(null);
+  const rendererRef = useRef<WebGPURenderer | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const [rendererType, setRendererType] = React.useState<'webgpu' | null>(null);
+  
+  // Debug renderer type changes
+  useEffect(() => {
+    console.log('[GalaxyCanvas] Renderer type changed to:', rendererType);
+  }, [rendererType]);
 
   const snapshot = useSimulationStore((state) => state.snapshot);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
@@ -39,12 +41,8 @@ export const GalaxyCanvas = () => {
         rendererRef.current = renderer;
         setRendererType('webgpu');
       } else {
-        console.log('WebGPU not supported, using Canvas 2D fallback');
-        const fallbackRenderer = new Canvas2DRenderer();
-        if (fallbackRenderer.initialize(canvasRef.current)) {
-          rendererRef.current = fallbackRenderer;
-          setRendererType('canvas2d');
-        }
+        console.error('WebGPU not supported - no fallback available');
+        setRendererType(null);
       }
     };
 
@@ -65,21 +63,35 @@ export const GalaxyCanvas = () => {
     }
   }, [snapshot, colorByCivilization]);
 
-  // Auto-rotation effect
+  // Auto-rotation effect (requestAnimationFrame-based)
   useEffect(() => {
     if (!autoRotate || viewMode !== '3D') return;
 
-    const interval = setInterval(() => {
+    let rafId: number | null = null;
+    let startTime = performance.now();
+    const startPos = [...camera.position] as [number, number, number];
+
+    const animate = () => {
+      const t = (performance.now() - startTime) / 2000; // seconds scale factor
+      const radius = Math.sqrt(
+        startPos[0] * startPos[0] + startPos[1] * startPos[1] + startPos[2] * startPos[2]
+      );
+      const theta = Math.atan2(startPos[2], startPos[0]) + t;
+      const phi = Math.asin(startPos[1] / radius);
       setCamera({
         position: [
-          Math.cos(Date.now() / 2000) * camera.position[2],
-          camera.position[1],
-          Math.sin(Date.now() / 2000) * camera.position[2],
+          radius * Math.cos(phi) * Math.cos(theta),
+          radius * Math.sin(phi),
+          radius * Math.cos(phi) * Math.sin(theta),
         ],
       });
-    }, 16);
+      rafId = requestAnimationFrame(animate);
+    };
 
-    return () => clearInterval(interval);
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [autoRotate, viewMode, camera.position, setCamera]);
 
   // Render loop
@@ -91,6 +103,12 @@ export const GalaxyCanvas = () => {
 
     const canvas = canvasRef.current;
     const boxSize = currentSimulation?.config.boxSizePc || 100;
+
+    // Debug which renderer is being used
+    const rendererName = 'WebGPU';
+    if (Math.random() < 0.01) { // Log occasionally to avoid spam
+      console.log('[GalaxyCanvas] Rendering with:', rendererName);
+    }
 
     rendererRef.current.render(
       {
@@ -106,17 +124,15 @@ export const GalaxyCanvas = () => {
     animationFrameRef.current = requestAnimationFrame(render);
   }, [viewMode, camera, colorByCivilization, currentSimulation]);
 
-  // Start render loop
+  // Start render loop when renderer becomes available or render deps change
   useEffect(() => {
-    if (rendererRef.current) {
-      animationFrameRef.current = requestAnimationFrame(render);
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-    }
-  }, [render]);
+    if (!rendererRef.current) return;
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = requestAnimationFrame(render);
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, [render, rendererType]);
 
   // Handle canvas resize
   useEffect(() => {
@@ -182,14 +198,24 @@ export const GalaxyCanvas = () => {
     document.addEventListener('mouseup', handleMouseUp);
   }, [viewMode, camera.position, setCamera]);
 
-  // Mouse wheel for zoom
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
-    setCamera({
-      zoom: Math.max(0.1, Math.min(10, camera.zoom * zoomFactor)),
-    });
-  }, [camera.zoom, setCamera]);
+  // Mouse wheel for zoom via non-passive listener
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const wheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+      setCamera({
+        zoom: Math.max(0.1, Math.min(10, (useVisualizationStore.getState().camera.zoom) * zoomFactor)),
+      });
+    };
+
+    canvas.addEventListener('wheel', wheelHandler, { passive: false });
+    return () => {
+      canvas.removeEventListener('wheel', wheelHandler as EventListener);
+    };
+  }, [setCamera]);
 
   if (rendererType === null) {
     // Show initializing while canvas initializes
@@ -204,6 +230,7 @@ export const GalaxyCanvas = () => {
         overflow: 'hidden',
         bgcolor: 'black',
         borderRadius: 1,
+        overscrollBehavior: 'none',
       }}
     >
       {rendererType === null ? (
@@ -226,7 +253,6 @@ export const GalaxyCanvas = () => {
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
-        onWheel={handleWheel}
         style={{
           display: 'block',
           cursor: viewMode === '3D' ? 'grab' : 'default',
@@ -249,11 +275,29 @@ export const GalaxyCanvas = () => {
             fontFamily: 'monospace',
           }}
         >
-          {rendererType === 'webgpu' ? '🚀 WebGPU' : '🎨 Canvas 2D'} | 
+          🚀 WebGPU | 
           Systems: {snapshot.systems.length} | Settled: {snapshot.metrics.settledCount} | 
           Active Civs: {snapshot.metrics.activeCivilizations}
         </Box>
       )}
+      
+      {/* Debug overlay - always visible */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          bgcolor: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          px: 1.5,
+          py: 0.5,
+          borderRadius: 1,
+          fontSize: '0.75rem',
+          fontFamily: 'monospace',
+        }}
+      >
+        Debug: {rendererType || 'null'} | {rendererRef.current ? 'WebGPU OK' : 'No Renderer'}
+      </Box>
     </Box>
   );
 };

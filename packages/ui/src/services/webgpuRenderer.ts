@@ -94,54 +94,83 @@ export class WebGPURenderer {
   private vertexBuffer: GPUBuffer | null = null;
   private colorBuffer: GPUBuffer | null = null;
   private vertexCount = 0;
+  private debugFrame = 0;
 
   async initialize(canvas: HTMLCanvasElement): Promise<boolean> {
+    console.log('[WebGPU] Starting initialization...');
+    
     // Check for WebGPU support
     if (!navigator.gpu) {
-      console.warn('WebGPU not supported on this browser.');
+      console.warn('[WebGPU] navigator.gpu not available');
       return false;
     }
+    console.log('[WebGPU] navigator.gpu available');
 
     try {
       // Request adapter and device
+      console.log('[WebGPU] Requesting adapter...');
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) {
-        console.warn('Failed to get WebGPU adapter.');
+        console.warn('[WebGPU] Failed to get adapter');
         return false;
       }
+      console.log('[WebGPU] Adapter obtained:', adapter);
 
+      console.log('[WebGPU] Requesting device...');
       this.device = await adapter.requestDevice();
+      console.log('[WebGPU] Device obtained:', this.device);
+      // Surface uncaptured validation/runtime errors
+      this.device.onuncapturederror = (event) => {
+        console.error('[WebGPU] Uncaptured error:', event.error);
+      };
       
       // Configure canvas context
+      console.log('[WebGPU] Getting canvas context...');
       this.context = canvas.getContext('webgpu');
       if (!this.context) {
-        console.warn('Failed to get WebGPU context.');
+        console.warn('[WebGPU] Failed to get WebGPU context');
         return false;
       }
+      console.log('[WebGPU] Canvas context obtained:', this.context);
 
       const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+      console.log('[WebGPU] Preferred format:', presentationFormat);
       this.context.configure({
         device: this.device,
         format: presentationFormat,
         alphaMode: 'premultiplied',
       });
+      console.log('[WebGPU] Context configured');
 
-      // Create shader modules
+      // Create shader modules (with validation scopes)
+      console.log('[WebGPU] Creating shader modules...');
+      await this.device.pushErrorScope('validation');
       const vertexShaderModule = this.device.createShaderModule({
         code: vertexShaderCode,
+        label: 'vertex-shader',
       });
 
       const fragmentShaderModule = this.device.createShaderModule({
         code: fragmentShaderCode,
+        label: 'fragment-shader',
       });
+      const shaderScopeError = await this.device.popErrorScope();
+      if (shaderScopeError) {
+        console.error('[WebGPU] Shader module error:', shaderScopeError);
+      } else {
+        console.log('[WebGPU] Shader modules created successfully');
+      }
 
       // Create uniform buffer
+      console.log('[WebGPU] Creating uniform buffer...');
       this.uniformBuffer = this.device.createBuffer({
         size: 144, // 2x mat4x4 + 2x f32 + padding
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        label: 'uniform-buffer',
       });
 
       // Create bind group layout
+      console.log('[WebGPU] Creating bind group layout...');
       const bindGroupLayout = this.device.createBindGroupLayout({
         entries: [
           {
@@ -150,9 +179,11 @@ export class WebGPURenderer {
             buffer: { type: 'uniform' },
           },
         ],
+        label: 'bind-group-layout',
       });
 
       // Create bind group
+      console.log('[WebGPU] Creating bind group...');
       this.bindGroup = this.device.createBindGroup({
         layout: bindGroupLayout,
         entries: [
@@ -161,12 +192,16 @@ export class WebGPURenderer {
             resource: { buffer: this.uniformBuffer },
           },
         ],
+        label: 'bind-group-0',
       });
 
       // Create pipeline
+      console.log('[WebGPU] Creating render pipeline...');
+      await this.device.pushErrorScope('validation');
       this.pipeline = this.device.createRenderPipeline({
         layout: this.device.createPipelineLayout({
           bindGroupLayouts: [bindGroupLayout],
+          label: 'pipeline-layout',
         }),
         vertex: {
           module: vertexShaderModule,
@@ -174,6 +209,7 @@ export class WebGPURenderer {
           buffers: [
             {
               arrayStride: 12, // vec3<f32>
+              stepMode: 'instance',
               attributes: [
                 {
                   shaderLocation: 0,
@@ -184,6 +220,7 @@ export class WebGPURenderer {
             },
             {
               arrayStride: 16, // vec4<f32>
+              stepMode: 'instance',
               attributes: [
                 {
                   shaderLocation: 1,
@@ -223,27 +260,69 @@ export class WebGPURenderer {
           depthWriteEnabled: true,
           depthCompare: 'less',
         },
+        label: 'render-pipeline',
       });
+      const pipelineScopeError = await this.device.popErrorScope();
+      if (pipelineScopeError) {
+        console.error('[WebGPU] Pipeline creation error:', pipelineScopeError);
+      } else {
+        console.log('[WebGPU] Render pipeline created successfully');
+      }
 
+      console.log('[WebGPU] Initialization completed successfully');
+      
+      // Load test data immediately
+      this.updateGeometry([], false);
+      
       return true;
     } catch (error) {
-      console.error('Failed to initialize WebGPU:', error);
+      console.error('[WebGPU] Initialization failed:', error);
       return false;
     }
   }
 
-  updateGeometry(systems: StarSystem[], colorByCivilization: boolean): void {
-    if (!this.device || systems.length === 0) return;
+  updateGeometry(_systems: StarSystem[], colorByCivilization: boolean): void {
+    if (!this.device) return;
 
+    // Always use test data for now - real simulation data will be handled separately
+    const testSystems = this.createTestSystems();
+    
     const positions: number[] = [];
     const colors: number[] = [];
 
     // Generate civilization colors
     const civColors = new Map<number, [number, number, number]>();
     
-    for (const system of systems) {
-      // Add position
-      positions.push(...system.position);
+    // Compute centroid to recenter the cloud near the origin for visibility
+    let sumX = 0, sumY = 0, sumZ = 0;
+    for (const s of testSystems) {
+      const p = (Array.isArray(s.position)
+        ? s.position
+        : [
+            (s.position as any).x,
+            (s.position as any).y,
+            (s.position as any).z,
+          ]) as [number, number, number];
+      sumX += p[0];
+      sumY += p[1];
+      sumZ += p[2];
+    }
+    const invCount = 1 / testSystems.length;
+    const cx = sumX * invCount;
+    const cy = sumY * invCount;
+    const cz = sumZ * invCount;
+
+    for (const system of testSystems) {
+      // Add position (support tuple [x,y,z] or object {x,y,z})
+      const pos = (Array.isArray(system.position)
+        ? system.position
+        : [
+            (system.position as any).x,
+            (system.position as any).y,
+            (system.position as any).z,
+          ]) as [number, number, number];
+      // Recenter around centroid so the camera points to the cloud
+      positions.push(pos[0] - cx, pos[1] - cy, pos[2] - cz);
 
       // Determine color based on state
       let color: [number, number, number, number];
@@ -253,19 +332,19 @@ export class WebGPURenderer {
           // Get or generate color for civilization
           if (!civColors.has(system.civilizationId)) {
             const hue = (system.civilizationId * 137.5) % 360; // Golden angle
-            civColors.set(system.civilizationId, this.hslToRgb(hue, 0.7, 0.6));
+            civColors.set(system.civilizationId, this.hslToRgb(hue, 0.9, 0.8));
           }
           const rgb = civColors.get(system.civilizationId)!;
           color = [...rgb, 1.0];
         } else {
-          color = [1.0, 0.3, 0.3, 1.0]; // Red for settled
+          color = [1.0, 0.2, 0.2, 1.0]; // Bright red for settled
         }
       } else if (system.isTargeted) {
-        color = [0.3, 1.0, 0.3, 1.0]; // Green for targeted
+        color = [0.2, 1.0, 0.2, 1.0]; // Bright green for targeted
       } else if (system.isSettleable) {
-        color = [0.5, 0.7, 1.0, 1.0]; // Light blue for settleable
+        color = [0.3, 0.6, 1.0, 1.0]; // Bright blue for settleable
       } else {
-        color = [0.3, 0.3, 0.3, 0.5]; // Gray for unsettleable
+        color = [0.6, 0.6, 0.6, 0.8]; // Brighter gray for unsettleable
       }
 
       colors.push(...color);
@@ -279,6 +358,7 @@ export class WebGPURenderer {
       size: positions.length * 4,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
+      label: 'positions-buffer',
     });
     new Float32Array(this.vertexBuffer.getMappedRange()).set(positions);
     this.vertexBuffer.unmap();
@@ -291,19 +371,73 @@ export class WebGPURenderer {
       size: colors.length * 4,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
+      label: 'colors-buffer',
     });
     new Float32Array(this.colorBuffer.getMappedRange()).set(colors);
     this.colorBuffer.unmap();
 
-    this.vertexCount = systems.length * 4; // 4 vertices per point (triangle strip)
+    // One instance per system; 4 vertices will be drawn per instance
+    this.vertexCount = testSystems.length;
+  }
+
+  private createTestSystems(): StarSystem[] {
+    const systems: StarSystem[] = [];
+    const numSystems = 1000;
+    
+    console.log('[WebGPU] Creating test systems...');
+    
+    // Add a bright test star at the origin first
+    systems.push({
+      position: [0, 0, 0],
+      velocity: [0, 0, 0],
+      isSettled: true, // Bright red
+      isTargeted: false,
+      isSettleable: true,
+      civilizationId: undefined,
+    });
+    
+    for (let i = 0; i < numSystems; i++) {
+      // Create a spiral galaxy pattern
+      const angle = (i / numSystems) * Math.PI * 8; // Multiple spirals
+      const radius = 20 + (i / numSystems) * 30; // Inner to outer radius
+      const height = (Math.random() - 0.5) * 10; // Random height
+      
+      const x = Math.cos(angle) * radius;
+      const y = height;
+      const z = Math.sin(angle) * radius;
+      
+      // Add some randomness
+      const noise = 0.1;
+      const finalX = x + (Math.random() - 0.5) * noise * radius;
+      const finalY = y + (Math.random() - 0.5) * noise * radius;
+      const finalZ = z + (Math.random() - 0.5) * noise * radius;
+      
+      systems.push({
+        position: [finalX, finalY, finalZ],
+        velocity: [0, 0, 0],
+        isSettled: Math.random() < 0.1, // 10% settled
+        isTargeted: Math.random() < 0.05, // 5% targeted
+        isSettleable: Math.random() < 0.7, // 70% settleable
+        civilizationId: Math.random() < 0.1 ? Math.floor(Math.random() * 5) : undefined,
+      });
+    }
+    
+    console.log(`[WebGPU] Created ${systems.length} test systems`);
+    console.log('[WebGPU] First few positions:', systems.slice(0, 3).map(s => s.position));
+    
+    // Log position ranges
+    const positions = systems.map(s => s.position);
+    const xRange = [Math.min(...positions.map(p => p[0])), Math.max(...positions.map(p => p[0]))];
+    const yRange = [Math.min(...positions.map(p => p[1])), Math.max(...positions.map(p => p[1]))];
+    const zRange = [Math.min(...positions.map(p => p[2])), Math.max(...positions.map(p => p[2]))];
+    console.log('[WebGPU] Position ranges:', { xRange, yRange, zRange });
+    
+    return systems;
   }
 
   render(options: RenderOptions, width: number, height: number): void {
-    if (!this.device || !this.context || !this.pipeline || !this.bindGroup) {
-      return;
-    }
-
-    if (!this.vertexBuffer || !this.colorBuffer || this.vertexCount === 0) {
+    // Always try to clear/submit a frame so we can visually confirm activity
+    if (!this.device || !this.context) {
       return;
     }
 
@@ -319,14 +453,27 @@ export class WebGPURenderer {
     const viewMatrix = this.createViewMatrix(options.viewMode, options.camera);
     uniformData.set(viewMatrix, 16);
     
-    // Point size and box size
-    uniformData[32] = 0.01 * options.camera.zoom; // Point size
+    // Point size (in clip-space-ish units): Much larger for visibility
+    uniformData[32] = Math.max(0.2, 5.0 / Math.max(0.1, options.camera.zoom));
     uniformData[33] = options.boxSize;
+    
+    // Debug camera info occasionally
+    if (this.debugFrame % 60 === 0) {
+      console.log('[WebGPU] Camera debug:', {
+        position: options.camera.position,
+        target: options.camera.target,
+        zoom: options.camera.zoom,
+        viewMode: options.viewMode,
+        pointSize: uniformData[32],
+        boxSize: uniformData[33]
+      });
+    }
 
     this.device.queue.writeBuffer(this.uniformBuffer!, 0, uniformData);
 
-    // Create command encoder
-    const commandEncoder = this.device.createCommandEncoder();
+    // Create command encoder with debug markers
+    const commandEncoder = this.device.createCommandEncoder({ label: 'frame-encoder' });
+    commandEncoder.insertDebugMarker(`frame-start-${this.debugFrame}`);
     
     const textureView = this.context.getCurrentTexture().createView();
     
@@ -352,16 +499,40 @@ export class WebGPURenderer {
         depthLoadOp: 'clear',
         depthStoreOp: 'store',
       },
+      label: 'render-pass',
     });
 
-    renderPass.setPipeline(this.pipeline);
-    renderPass.setBindGroup(0, this.bindGroup);
-    renderPass.setVertexBuffer(0, this.vertexBuffer);
-    renderPass.setVertexBuffer(1, this.colorBuffer);
-    renderPass.draw(this.vertexCount);
+    // Only attempt draw if pipeline and geometry are ready
+    if (this.pipeline && this.bindGroup && this.vertexBuffer && this.colorBuffer && this.vertexCount > 0) {
+      renderPass.pushDebugGroup('draw-instances');
+      renderPass.setPipeline(this.pipeline);
+      renderPass.setBindGroup(0, this.bindGroup);
+      renderPass.setVertexBuffer(0, this.vertexBuffer);
+      renderPass.setVertexBuffer(1, this.colorBuffer);
+      // Draw 4 vertices per instance (quad), with instance count equal to number of systems
+      renderPass.draw(4, this.vertexCount);
+      renderPass.popDebugGroup();
+      
+      // Debug logging
+      if (this.debugFrame % 60 === 0) { // Log every second
+        console.log(`[WebGPU] Drawing ${this.vertexCount} instances, frame ${this.debugFrame}`);
+      }
+    } else {
+      if (this.debugFrame % 60 === 0) {
+        console.log('[WebGPU] Not drawing - missing:', {
+          pipeline: !!this.pipeline,
+          bindGroup: !!this.bindGroup,
+          vertexBuffer: !!this.vertexBuffer,
+          colorBuffer: !!this.colorBuffer,
+          vertexCount: this.vertexCount
+        });
+      }
+    }
     renderPass.end();
 
+    commandEncoder.insertDebugMarker('frame-submit');
     this.device.queue.submit([commandEncoder.finish()]);
+    this.debugFrame++;
     
     depthTexture.destroy();
   }

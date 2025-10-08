@@ -19,7 +19,7 @@ export const Layout = ({ children }: LayoutProps) => {
           </Typography>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="xl" sx={{ flex: 1, py: 3 }}>
+      <Container maxWidth='xl' disableGutters sx={{ flex: 1, py: 3 }}>
         {children}
       </Container>
     </Box>
