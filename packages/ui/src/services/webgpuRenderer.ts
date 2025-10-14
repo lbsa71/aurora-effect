@@ -314,7 +314,7 @@ export class WebGPURenderer {
 
     const coercedPositions: [number, number, number][] = [];
     for (const s of systemsToUse) {
-      const p = coerceToVec3((s as any).position);
+      const p = coerceToVec3(s.position);
       if (p) coercedPositions.push(p);
     }
 

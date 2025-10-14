@@ -1,8 +1,6 @@
 services:
   api:
-    build:
-      context: .
-      dockerfile: packages/api/Dockerfile
+    image: ghcr.io/lbsa71/aurora-effect-api:${TAG:-latest}
     container_name: aurora-api-prod
     ports:
       - "3000:3000"
@@ -23,14 +21,12 @@ services:
       - aurora-network
 
   ui:
-    build:
-      context: .
-      dockerfile: packages/ui/Dockerfile
+    image: ghcr.io/lbsa71/aurora-effect-ui:${TAG:-latest}
     container_name: aurora-ui-prod
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_URL=https://aurora-effect.lbsa71.net
     depends_on:
       api:
         condition: service_healthy

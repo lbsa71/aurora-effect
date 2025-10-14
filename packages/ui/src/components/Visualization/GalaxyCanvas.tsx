@@ -67,7 +67,7 @@ export const GalaxyCanvas = () => {
 
   // Compute real-data bounding box for overlay and camera fitting
   const bbox = React.useMemo(() => {
-    const systems = snapshot?.systems || [];
+    const systems = snapshot?.systems ?? [];
     if (systems.length === 0) return null;
 
     const toVec3 = (pos: unknown): [number, number, number] | null => {
@@ -85,7 +85,7 @@ export const GalaxyCanvas = () => {
 
     const pts: [number, number, number][] = [];
     for (const s of systems) {
-      const p = toVec3((s as any).position);
+      const p = toVec3(s.position);
       if (p) pts.push(p);
     }
     if (pts.length === 0) return null;
@@ -123,7 +123,7 @@ export const GalaxyCanvas = () => {
     if (!autoRotate || viewMode !== '3D') return;
 
     let rafId: number | null = null;
-    let startTime = performance.now();
+    const startTime = performance.now();
     const startPos = [...camera.position] as [number, number, number];
 
     const animate = () => {

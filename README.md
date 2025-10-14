@@ -131,6 +131,60 @@ docker run -p 80:80 aurora-ui
 
 **Note**: The Docker build process requires pre-built application code. Run `./docker-build.sh` to build the application before building Docker images.
 
+### Using published Docker images (GHCR)
+
+Pre-built images are published to GitHub Container Registry (GHCR) by CI for both API and UI:
+
+- API image: `ghcr.io/lbsa71/aurora-effect-api`
+- UI image: `ghcr.io/lbsa71/aurora-effect-ui`
+
+Tags:
+
+- `latest` on the `main` branch
+- Branch names (e.g., `refs/heads/feature-x` -> `feature-x`)
+- Git tags (e.g., `v1.2.3`)
+- Commit SHA (e.g., `sha-<shortsha>`)
+
+Pull images directly:
+
+```bash
+docker pull ghcr.io/lbsa71/aurora-effect-api:latest
+docker pull ghcr.io/lbsa71/aurora-effect-ui:latest
+```
+
+Run with Docker directly:
+
+```bash
+# API
+docker run -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  -e CORS_ORIGIN=https://aurora-effect.lbsa71.net \
+  -e MAX_SIMULATIONS=10 \
+  -e UPDATE_INTERVAL_MS=100 \
+  ghcr.io/lbsa71/aurora-effect-api:latest
+
+# UI (configure API URL)
+docker run -p 80:80 \
+  -e VITE_API_URL=https://aurora-effect.lbsa71.net \
+  ghcr.io/lbsa71/aurora-effect-ui:latest
+```
+
+Run with Docker Compose (production):
+
+```bash
+# Optionally select a tag (defaults to latest)
+export TAG=v1.2.3   # or main branch name, or omit for latest
+
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Authentication to GHCR is not required for public images. If you need to authenticate (e.g., for rate limits), run:
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u <github-username> --password-stdin
+```
+
 ### Running Examples
 
 ```bash
