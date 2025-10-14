@@ -16,6 +16,8 @@ interface VisualizationState {
   showLabels: boolean;
   colorByCivilization: boolean;
   autoRotate: boolean;
+  pointSizeScale: number; // UI-controlled multiplier for star size
+  brightness: number;     // UI-controlled multiplier for star brightness
   
   // Actions
   setViewMode: (mode: ViewMode) => void;
@@ -23,6 +25,8 @@ interface VisualizationState {
   setShowLabels: (show: boolean) => void;
   setColorByCivilization: (colorBy: boolean) => void;
   setAutoRotate: (rotate: boolean) => void;
+  setPointSizeScale: (scale: number) => void;
+  setBrightness: (brightness: number) => void;
   resetCamera: () => void;
 }
 
@@ -38,6 +42,8 @@ export const useVisualizationStore = create<VisualizationState>((set) => ({
   showLabels: false,
   colorByCivilization: true,
   autoRotate: false,
+  pointSizeScale: 1.0,
+  brightness: 1.0,
 
   setViewMode: (mode) => set({ viewMode: mode }),
   setCamera: (partialCamera) =>
@@ -47,5 +53,7 @@ export const useVisualizationStore = create<VisualizationState>((set) => ({
   setShowLabels: (show) => set({ showLabels: show }),
   setColorByCivilization: (colorBy) => set({ colorByCivilization: colorBy }),
   setAutoRotate: (rotate) => set({ autoRotate: rotate }),
+  setPointSizeScale: (scale) => set({ pointSizeScale: Math.max(0.1, Math.min(5, scale)) }),
+  setBrightness: (brightness) => set({ brightness: Math.max(0.2, Math.min(3, brightness)) }),
   resetCamera: () => set({ camera: defaultCamera }),
 }));

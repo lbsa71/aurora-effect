@@ -12,6 +12,7 @@ import {
   FormControlLabel,
   Switch,
   Divider,
+  Slider,
 } from '@mui/material';
 import {
   ThreeDRotation,
@@ -38,6 +39,10 @@ export const ViewControls = () => {
   const setColorByCivilization = useVisualizationStore((state) => state.setColorByCivilization);
   const setAutoRotate = useVisualizationStore((state) => state.setAutoRotate);
   const resetCamera = useVisualizationStore((state) => state.resetCamera);
+  const pointSizeScale = useVisualizationStore((state) => state.pointSizeScale);
+  const brightness = useVisualizationStore((state) => state.brightness);
+  const setPointSizeScale = useVisualizationStore((state) => state.setPointSizeScale);
+  const setBrightness = useVisualizationStore((state) => state.setBrightness);
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -177,6 +182,34 @@ export const ViewControls = () => {
               }
             />
           )}
+          <Box sx={{ mt: 1 }}>
+            <Box sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
+              Star Size
+            </Box>
+            <Slider
+              size="small"
+              min={0.2}
+              max={3}
+              step={0.1}
+              value={pointSizeScale}
+              onChange={(_, v) => setPointSizeScale(v as number)}
+              valueLabelDisplay="auto"
+            />
+          </Box>
+          <Box>
+            <Box sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
+              Brightness
+            </Box>
+            <Slider
+              size="small"
+              min={0.4}
+              max={2.5}
+              step={0.1}
+              value={brightness}
+              onChange={(_, v) => setBrightness(v as number)}
+              valueLabelDisplay="auto"
+            />
+          </Box>
         </Box>
       </Box>
 
