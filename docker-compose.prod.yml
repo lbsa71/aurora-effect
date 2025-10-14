@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: packages/api/Dockerfile
-    container_name: aurora-api
+    container_name: aurora-api-prod
     ports:
       - "3000:3000"
     environment:
@@ -26,7 +26,7 @@ services:
     build:
       context: .
       dockerfile: packages/ui/Dockerfile
-    container_name: aurora-ui
+    container_name: aurora-ui-prod
     ports:
       - "80:80"
     environment:
@@ -44,16 +44,14 @@ services:
     networks:
       - aurora-network
 
-  tunnel:
+  cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: aurora-tunnel
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./.cloudflared:/etc/cloudflared:ro
+    container_name: aurora-tunnel-prod
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       ui:
         condition: service_healthy
-    restart: unless-stopped
     networks:
       - aurora-network
 
