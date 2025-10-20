@@ -1,19 +1,20 @@
 /**
  * Galaxy Canvas Component
- * WebGPU-based visualization of star systems
+ * WebGPU-based visualization of star systems with Canvas2D fallback
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { WebGPURenderer } from '../../services/webgpuRenderer';
+import { Canvas2DRenderer } from '../../services/canvas2dRenderer';
 import { useSimulationStore } from '../../store/simulation';
 import { useVisualizationStore } from '../../store/visualization';
 
 export const GalaxyCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<WebGPURenderer | null>(null);
+  const rendererRef = useRef<WebGPURenderer | Canvas2DRenderer | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const [rendererType, setRendererType] = React.useState<'webgpu' | null>(null);
+  const [rendererType, setRendererType] = React.useState<'webgpu' | 'canvas2d' | null>(null);
   
   // Debug renderer type changes
   useEffect(() => {
@@ -31,21 +32,33 @@ export const GalaxyCanvas = () => {
   const autoRotate = useVisualizationStore((state) => state.autoRotate);
   const setCamera = useVisualizationStore((state) => state.setCamera);
 
-  // Initialize WebGPU renderer
+  // Initialize renderer (WebGPU with Canvas2D fallback)
   useEffect(() => {
     const initRenderer = async () => {
       if (!canvasRef.current) return;
 
-      const renderer = new WebGPURenderer();
-      const supported = await renderer.initialize(canvasRef.current);
+      // Try WebGPU first
+      const webgpuRenderer = new WebGPURenderer();
+      const webgpuSupported = await webgpuRenderer.initialize(canvasRef.current);
       
-      if (supported) {
+      if (webgpuSupported) {
         console.log('Using WebGPU renderer');
-        rendererRef.current = renderer;
+        rendererRef.current = webgpuRenderer;
         setRendererType('webgpu');
       } else {
-        console.error('WebGPU not supported - no fallback available');
-        setRendererType(null);
+        // Fallback to Canvas2D
+        console.log('WebGPU not supported, falling back to Canvas2D');
+        const canvas2dRenderer = new Canvas2DRenderer();
+        const canvas2dSupported = canvas2dRenderer.initialize(canvasRef.current);
+        
+        if (canvas2dSupported) {
+          console.log('Using Canvas2D renderer');
+          rendererRef.current = canvas2dRenderer;
+          setRendererType('canvas2d');
+        } else {
+          console.error('No renderer available');
+          setRendererType(null);
+        }
       }
     };
 
@@ -55,7 +68,9 @@ export const GalaxyCanvas = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      rendererRef.current?.destroy();
+      if (rendererRef.current && 'destroy' in rendererRef.current) {
+        rendererRef.current.destroy();
+      }
     };
   }, []);
 
@@ -188,7 +203,7 @@ export const GalaxyCanvas = () => {
     const boxSize = currentSimulation?.config.boxSizePc || 100;
 
     // Debug which renderer is being used
-    const rendererName = 'WebGPU';
+    const rendererName = rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D';
     if (Math.random() < 0.01) { // Log occasionally to avoid spam
       console.log('[GalaxyCanvas] Rendering with:', rendererName);
     }
@@ -360,7 +375,7 @@ export const GalaxyCanvas = () => {
             fontFamily: 'monospace',
           }}
         >
-          🚀 WebGPU | 
+          🚀 {rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D'} | 
           Systems: {snapshot.systems.length} | Settled: {snapshot.metrics.settledCount} | 
           Active Civs: {snapshot.metrics.activeCivilizations}
         </Box>
@@ -379,7 +394,7 @@ export const GalaxyCanvas = () => {
             fontFamily: 'monospace',
           }}
         >
-          ✨ Demo Starfield | WebGPU | Stars: {demoStarfield.stars.length} | Rotating...
+          ✨ Demo Starfield | {rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D'} | Stars: {demoStarfield.stars.length} | Rotating...
         </Box>
       ) : null}
 
@@ -418,7 +433,7 @@ export const GalaxyCanvas = () => {
           fontFamily: 'monospace',
         }}
       >
-        Debug: {rendererType || 'null'} | {rendererRef.current ? 'WebGPU OK' : 'No Renderer'}
+        Debug: {rendererType || 'null'} | {rendererRef.current ? (rendererType === 'webgpu' ? 'WebGPU OK' : 'Canvas2D OK') : 'No Renderer'}
       </Box>
     </Box>
   );
