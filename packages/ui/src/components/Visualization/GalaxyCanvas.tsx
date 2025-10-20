@@ -1,19 +1,20 @@
 /**
  * Galaxy Canvas Component
- * WebGPU-based visualization of star systems
+ * WebGPU-based visualization of star systems with Canvas2D fallback
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { WebGPURenderer } from '../../services/webgpuRenderer';
+import { Canvas2DRenderer } from '../../services/canvas2dRenderer';
 import { useSimulationStore } from '../../store/simulation';
 import { useVisualizationStore } from '../../store/visualization';
 
 export const GalaxyCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<WebGPURenderer | null>(null);
+  const rendererRef = useRef<WebGPURenderer | Canvas2DRenderer | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const [rendererType, setRendererType] = React.useState<'webgpu' | null>(null);
+  const [rendererType, setRendererType] = React.useState<'webgpu' | 'canvas2d' | null>(null);
   
   // Debug renderer type changes
   useEffect(() => {
@@ -21,6 +22,7 @@ export const GalaxyCanvas = () => {
   }, [rendererType]);
 
   const snapshot = useSimulationStore((state) => state.snapshot);
+  const demoStarfield = useSimulationStore((state) => state.demoStarfield);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const viewMode = useVisualizationStore((state) => state.viewMode);
   const camera = useVisualizationStore((state) => state.camera);
@@ -30,21 +32,33 @@ export const GalaxyCanvas = () => {
   const autoRotate = useVisualizationStore((state) => state.autoRotate);
   const setCamera = useVisualizationStore((state) => state.setCamera);
 
-  // Initialize WebGPU renderer
+  // Initialize renderer (WebGPU with Canvas2D fallback)
   useEffect(() => {
     const initRenderer = async () => {
       if (!canvasRef.current) return;
 
-      const renderer = new WebGPURenderer();
-      const supported = await renderer.initialize(canvasRef.current);
+      // Try WebGPU first
+      const webgpuRenderer = new WebGPURenderer();
+      const webgpuSupported = await webgpuRenderer.initialize(canvasRef.current);
       
-      if (supported) {
+      if (webgpuSupported) {
         console.log('Using WebGPU renderer');
-        rendererRef.current = renderer;
+        rendererRef.current = webgpuRenderer;
         setRendererType('webgpu');
       } else {
-        console.error('WebGPU not supported - no fallback available');
-        setRendererType(null);
+        // Fallback to Canvas2D
+        console.log('WebGPU not supported, falling back to Canvas2D');
+        const canvas2dRenderer = new Canvas2DRenderer();
+        const canvas2dSupported = canvas2dRenderer.initialize(canvasRef.current);
+        
+        if (canvas2dSupported) {
+          console.log('Using Canvas2D renderer');
+          rendererRef.current = canvas2dRenderer;
+          setRendererType('canvas2d');
+        } else {
+          console.error('No renderer available');
+          setRendererType(null);
+        }
       }
     };
 
@@ -54,21 +68,39 @@ export const GalaxyCanvas = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      rendererRef.current?.destroy();
+      if (rendererRef.current && 'destroy' in rendererRef.current) {
+        rendererRef.current.destroy();
+      }
     };
   }, []);
 
   // Update geometry when simulation data changes
   useEffect(() => {
-    if (rendererRef.current && snapshot?.systems) {
-      rendererRef.current.updateGeometry(snapshot.systems, colorByCivilization);
+    if (rendererRef.current) {
+      if (snapshot?.systems) {
+        // Use real simulation data
+        rendererRef.current.updateGeometry(snapshot.systems, colorByCivilization);
+      } else if (demoStarfield?.stars) {
+        // Use demo starfield data when no simulation is active
+        const demoSystems = demoStarfield.stars.map((star) => ({
+          position: [star.position.x, star.position.y, star.position.z] as [number, number, number],
+          velocity: [0, 0, 0] as [number, number, number],
+          isSettled: false,
+          isTargeted: false,
+          isSettleable: false,
+        }));
+        rendererRef.current.updateGeometry(demoSystems, false);
+      }
     }
-  }, [snapshot, colorByCivilization]);
+  }, [snapshot, demoStarfield, colorByCivilization]);
 
   // Compute real-data bounding box for overlay and camera fitting
   const bbox = React.useMemo(() => {
     const systems = snapshot?.systems ?? [];
-    if (systems.length === 0) return null;
+    const demoStars = demoStarfield?.stars ?? [];
+    
+    // Use simulation systems if available, otherwise demo stars
+    if (systems.length === 0 && demoStars.length === 0) return null;
 
     const toVec3 = (pos: unknown): [number, number, number] | null => {
       if (Array.isArray(pos) && pos.length >= 3) {
@@ -84,10 +116,21 @@ export const GalaxyCanvas = () => {
     };
 
     const pts: [number, number, number][] = [];
+    
+    // Add simulation systems
     for (const s of systems) {
       const p = toVec3(s.position);
       if (p) pts.push(p);
     }
+    
+    // Add demo stars if no simulation data
+    if (systems.length === 0) {
+      for (const star of demoStars) {
+        const p = toVec3(star.position);
+        if (p) pts.push(p);
+      }
+    }
+    
     if (pts.length === 0) return null;
 
     let minX = Infinity, minY = Infinity, minZ = Infinity;
@@ -105,7 +148,7 @@ export const GalaxyCanvas = () => {
     const size: [number, number, number] = [maxX - minX, maxY - minY, maxZ - minZ];
 
     return { min: [minX, minY, minZ] as [number, number, number], max: [maxX, maxY, maxZ] as [number, number, number], center, size, count: pts.length };
-  }, [snapshot]);
+  }, [snapshot, demoStarfield]);
 
   // Auto-fit camera once when real data first appears (renderer recenters cloud around origin)
   useEffect(() => {
@@ -160,7 +203,7 @@ export const GalaxyCanvas = () => {
     const boxSize = currentSimulation?.config.boxSizePc || 100;
 
     // Debug which renderer is being used
-    const rendererName = 'WebGPU';
+    const rendererName = rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D';
     if (Math.random() < 0.01) { // Log occasionally to avoid spam
       console.log('[GalaxyCanvas] Rendering with:', rendererName);
     }
@@ -179,7 +222,7 @@ export const GalaxyCanvas = () => {
     );
 
     animationFrameRef.current = requestAnimationFrame(render);
-  }, [viewMode, camera, colorByCivilization, currentSimulation, pointSizeScale, brightness]);
+  }, [viewMode, camera, colorByCivilization, currentSimulation, pointSizeScale, brightness, rendererType]);
 
   // Start render loop when renderer becomes available or render deps change
   useEffect(() => {
@@ -317,7 +360,7 @@ export const GalaxyCanvas = () => {
       />
       
       {/* Status overlay */}
-      {snapshot && (
+      {snapshot ? (
         <Box
           sx={{
             position: 'absolute',
@@ -332,11 +375,28 @@ export const GalaxyCanvas = () => {
             fontFamily: 'monospace',
           }}
         >
-          🚀 WebGPU | 
+          🚀 {rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D'} | 
           Systems: {snapshot.systems.length} | Settled: {snapshot.metrics.settledCount} | 
           Active Civs: {snapshot.metrics.activeCivilizations}
         </Box>
-      )}
+      ) : demoStarfield ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
+            fontSize: '0.875rem',
+            fontFamily: 'monospace',
+          }}
+        >
+          ✨ Demo Starfield | {rendererType === 'webgpu' ? 'WebGPU' : 'Canvas2D'} | Stars: {demoStarfield.stars.length} | Rotating...
+        </Box>
+      ) : null}
 
       {/* Bounding box overlay (real data) */}
       {bbox && (
@@ -373,7 +433,7 @@ export const GalaxyCanvas = () => {
           fontFamily: 'monospace',
         }}
       >
-        Debug: {rendererType || 'null'} | {rendererRef.current ? 'WebGPU OK' : 'No Renderer'}
+        Debug: {rendererType || 'null'} | {rendererRef.current ? (rendererType === 'webgpu' ? 'WebGPU OK' : 'Canvas2D OK') : 'No Renderer'}
       </Box>
     </Box>
   );
