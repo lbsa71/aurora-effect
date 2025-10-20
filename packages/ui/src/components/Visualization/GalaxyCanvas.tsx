@@ -222,7 +222,7 @@ export const GalaxyCanvas = () => {
     );
 
     animationFrameRef.current = requestAnimationFrame(render);
-  }, [viewMode, camera, colorByCivilization, currentSimulation, pointSizeScale, brightness]);
+  }, [viewMode, camera, colorByCivilization, currentSimulation, pointSizeScale, brightness, rendererType]);
 
   // Start render loop when renderer becomes available or render deps change
   useEffect(() => {
