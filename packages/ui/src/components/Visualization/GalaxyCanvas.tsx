@@ -21,6 +21,7 @@ export const GalaxyCanvas = () => {
   }, [rendererType]);
 
   const snapshot = useSimulationStore((state) => state.snapshot);
+  const demoStarfield = useSimulationStore((state) => state.demoStarfield);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const viewMode = useVisualizationStore((state) => state.viewMode);
   const camera = useVisualizationStore((state) => state.camera);
@@ -60,15 +61,31 @@ export const GalaxyCanvas = () => {
 
   // Update geometry when simulation data changes
   useEffect(() => {
-    if (rendererRef.current && snapshot?.systems) {
-      rendererRef.current.updateGeometry(snapshot.systems, colorByCivilization);
+    if (rendererRef.current) {
+      if (snapshot?.systems) {
+        // Use real simulation data
+        rendererRef.current.updateGeometry(snapshot.systems, colorByCivilization);
+      } else if (demoStarfield?.stars) {
+        // Use demo starfield data when no simulation is active
+        const demoSystems = demoStarfield.stars.map((star) => ({
+          position: [star.position.x, star.position.y, star.position.z] as [number, number, number],
+          velocity: [0, 0, 0] as [number, number, number],
+          isSettled: false,
+          isTargeted: false,
+          isSettleable: false,
+        }));
+        rendererRef.current.updateGeometry(demoSystems, false);
+      }
     }
-  }, [snapshot, colorByCivilization]);
+  }, [snapshot, demoStarfield, colorByCivilization]);
 
   // Compute real-data bounding box for overlay and camera fitting
   const bbox = React.useMemo(() => {
     const systems = snapshot?.systems ?? [];
-    if (systems.length === 0) return null;
+    const demoStars = demoStarfield?.stars ?? [];
+    
+    // Use simulation systems if available, otherwise demo stars
+    if (systems.length === 0 && demoStars.length === 0) return null;
 
     const toVec3 = (pos: unknown): [number, number, number] | null => {
       if (Array.isArray(pos) && pos.length >= 3) {
@@ -84,10 +101,21 @@ export const GalaxyCanvas = () => {
     };
 
     const pts: [number, number, number][] = [];
+    
+    // Add simulation systems
     for (const s of systems) {
       const p = toVec3(s.position);
       if (p) pts.push(p);
     }
+    
+    // Add demo stars if no simulation data
+    if (systems.length === 0) {
+      for (const star of demoStars) {
+        const p = toVec3(star.position);
+        if (p) pts.push(p);
+      }
+    }
+    
     if (pts.length === 0) return null;
 
     let minX = Infinity, minY = Infinity, minZ = Infinity;
@@ -105,7 +133,7 @@ export const GalaxyCanvas = () => {
     const size: [number, number, number] = [maxX - minX, maxY - minY, maxZ - minZ];
 
     return { min: [minX, minY, minZ] as [number, number, number], max: [maxX, maxY, maxZ] as [number, number, number], center, size, count: pts.length };
-  }, [snapshot]);
+  }, [snapshot, demoStarfield]);
 
   // Auto-fit camera once when real data first appears (renderer recenters cloud around origin)
   useEffect(() => {
@@ -317,7 +345,7 @@ export const GalaxyCanvas = () => {
       />
       
       {/* Status overlay */}
-      {snapshot && (
+      {snapshot ? (
         <Box
           sx={{
             position: 'absolute',
@@ -336,7 +364,24 @@ export const GalaxyCanvas = () => {
           Systems: {snapshot.systems.length} | Settled: {snapshot.metrics.settledCount} | 
           Active Civs: {snapshot.metrics.activeCivilizations}
         </Box>
-      )}
+      ) : demoStarfield ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            left: 8,
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
+            fontSize: '0.875rem',
+            fontFamily: 'monospace',
+          }}
+        >
+          ✨ Demo Starfield | WebGPU | Stars: {demoStarfield.stars.length} | Rotating...
+        </Box>
+      ) : null}
 
       {/* Bounding box overlay (real data) */}
       {bbox && (

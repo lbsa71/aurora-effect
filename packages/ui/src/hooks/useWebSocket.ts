@@ -27,6 +27,12 @@ export const useWebSocket = (simulationId: string | null) => {
       onUpdate: (update) => {
         setLatestUpdate(update);
       },
+      onDemoStarfield: (update) => {
+        // Only update demo starfield if no simulation is active
+        if (!simulationId) {
+          useSimulationStore.getState().setDemoStarfield(update);
+        }
+      },
       onError: (error) => {
         console.error('WebSocket error:', error);
         setError(error.message);
@@ -36,7 +42,7 @@ export const useWebSocket = (simulationId: string | null) => {
     return () => {
       wsClient.disconnect();
     };
-  }, [setLatestUpdate, setError]);
+  }, [setLatestUpdate, setError, simulationId]);
 
   useEffect(() => {
     if (simulationId && wsClient.isConnected) {

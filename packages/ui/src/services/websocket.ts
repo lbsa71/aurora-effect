@@ -3,7 +3,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
-import type { SimulationUpdate } from '../types';
+import type { SimulationUpdate, DemoStarfieldUpdate } from '../types';
 
 const WS_URL =
   import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
@@ -15,6 +15,7 @@ export interface WebSocketCallbacks {
   onDisconnect?: () => void;
   onStatus?: (status: string) => void;
   onUpdate?: (update: SimulationUpdate) => void;
+  onDemoStarfield?: (update: DemoStarfieldUpdate) => void;
   onError?: (error: Error) => void;
 }
 
@@ -50,6 +51,10 @@ class WebSocketClient {
 
     this.socket.on('update', (update: SimulationUpdate) => {
       this.callbacks.onUpdate?.(update);
+    });
+
+    this.socket.on('demo-starfield', (update: DemoStarfieldUpdate) => {
+      this.callbacks.onDemoStarfield?.(update);
     });
 
     this.socket.on('error', (error: Error) => {

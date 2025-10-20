@@ -8,6 +8,7 @@ import type {
   SimulationStatus,
   SimulationUpdate,
   SimulationSnapshot,
+  DemoStarfieldUpdate,
 } from '../types';
 
 interface SimulationState {
@@ -20,6 +21,9 @@ interface SimulationState {
   // Snapshot data
   snapshot: SimulationSnapshot | null;
   
+  // Demo starfield data (when no simulation is active)
+  demoStarfield: DemoStarfieldUpdate | null;
+  
   // Loading states
   isLoading: boolean;
   error: string | null;
@@ -28,6 +32,7 @@ interface SimulationState {
   setCurrentSimulation: (simulation: SimulationStatus | null) => void;
   setLatestUpdate: (update: SimulationUpdate) => void;
   setSnapshot: (snapshot: SimulationSnapshot | null) => void;
+  setDemoStarfield: (update: DemoStarfieldUpdate | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearSimulation: () => void;
@@ -37,12 +42,14 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   currentSimulation: null,
   latestUpdate: null,
   snapshot: null,
+  demoStarfield: null,
   isLoading: false,
   error: null,
 
   setCurrentSimulation: (simulation) => set({ currentSimulation: simulation }),
   setLatestUpdate: (update) => set({ latestUpdate: update }),
   setSnapshot: (snapshot) => set({ snapshot }),
+  setDemoStarfield: (update) => set({ demoStarfield: update }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   clearSimulation: () =>

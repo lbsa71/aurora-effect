@@ -3,6 +3,19 @@
  * These types match the API and simulator interfaces
  */
 
+export interface DemoStar {
+  id: number;
+  position: { x: number; y: number; z: number };
+  color: string;
+  brightness: number;
+}
+
+export interface DemoStarfieldUpdate {
+  stars: DemoStar[];
+  timestamp: number;
+  rotation: number;
+}
+
 export interface SimulationConfig {
   stellarDensity: number;          // Stars per pc³
   settleableFraction: number;      // Fraction of settleable systems (0-1)

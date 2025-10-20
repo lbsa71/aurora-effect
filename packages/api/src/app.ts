@@ -5,6 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import simulationsRouter from './routes/simulations';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { simulationService } from './services/simulationService';
+import { demoStarfieldService } from './services/demoStarfieldService';
 import { CORS_ORIGIN } from './config';
 
 export function createApp(): express.Application {
@@ -37,8 +38,18 @@ export function setupWebSocket(server: ReturnType<typeof createServer>): SocketI
     },
   });
 
+  // Start demo starfield service and broadcast updates to all clients
+  demoStarfieldService.start();
+  demoStarfieldService.onUpdate((update) => {
+    io.emit('demo-starfield', update);
+  });
+
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
+
+    // Send current demo starfield state immediately upon connection
+    const currentState = demoStarfieldService.getCurrentState();
+    socket.emit('demo-starfield', currentState);
 
     // Subscribe to simulation updates
     socket.on('subscribe', (simulationId: string) => {
