@@ -24,6 +24,7 @@ The Aurora Effect simulator will provide:
 - **Realistic physics**: Incorporates stellar motions, probe velocity constraints, and launch rates
 - **Flexible parameters**: Configure probe speeds, ranges, launch periods, settleable fractions, and civilization lifetimes
 - **Multiple civilizations**: Simulate independent civilizations with different starting points and characteristics
+- **Variable probe parameters**: Per-civilization probe capabilities (velocity, range, launch period) for technology asymmetry modeling
 - **Analytical validation**: Compare simulation results with theoretical predictions from the paper
 
 ### Web API
