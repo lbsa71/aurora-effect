@@ -3,6 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import simulationsRouter from './routes/simulations';
+import presetsRouter from './routes/presets';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { simulationService } from './services/simulationService';
 import { demoStarfieldService } from './services/demoStarfieldService';
@@ -22,6 +23,7 @@ export function createApp(): express.Application {
 
   // API routes
   app.use('/api/simulations', simulationsRouter);
+  app.use('/api/presets', presetsRouter);
 
   // Error handling
   app.use(notFoundHandler);

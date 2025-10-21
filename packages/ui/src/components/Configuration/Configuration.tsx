@@ -10,11 +10,47 @@ import {
   TextField,
   Typography,
   Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
 } from '@mui/material';
+import { useState, useEffect } from 'react';
 import { useConfigStore } from '../../store/simulation';
+import { apiClient } from '../../services/api';
+
+interface Preset {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  config: any;
+  maxSteps?: number;
+  updateInterval?: number;
+}
 
 export const Configuration = () => {
   const { config, maxSteps, updateInterval, setConfig, setMaxSteps, setUpdateInterval, resetConfig } = useConfigStore();
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [loadingPresets, setLoadingPresets] = useState(false);
+
+  useEffect(() => {
+    const loadPresets = async () => {
+      try {
+        setLoadingPresets(true);
+        const response = await apiClient.getPresets();
+        setPresets(response.presets);
+      } catch (error) {
+        console.error('Failed to load presets:', error);
+      } finally {
+        setLoadingPresets(false);
+      }
+    };
+
+    loadPresets();
+  }, []);
 
   const handleNumberChange = (field: keyof typeof config) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -22,6 +58,26 @@ export const Configuration = () => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value)) {
       setConfig({ [field]: value });
+    }
+  };
+
+  const handlePresetChange = (presetId: string) => {
+    setSelectedPreset(presetId);
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) {
+      setConfig(preset.config);
+      if (preset.maxSteps) setMaxSteps(preset.maxSteps);
+      if (preset.updateInterval) setUpdateInterval(preset.updateInterval);
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'fermi': return 'error';
+      case 'optimistic': return 'success';
+      case 'steady-state': return 'warning';
+      case 'research': return 'info';
+      default: return 'default';
     }
   };
 
@@ -33,6 +89,39 @@ export const Configuration = () => {
         </Typography>
         
         <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <FormControl fullWidth margin="normal" size="small">
+              <InputLabel>Scenario Preset</InputLabel>
+              <Select
+                value={selectedPreset}
+                label="Scenario Preset"
+                onChange={(e) => handlePresetChange(e.target.value)}
+                disabled={loadingPresets}
+              >
+                <MenuItem value="">
+                  <em>Custom Configuration</em>
+                </MenuItem>
+                {presets.map((preset) => (
+                  <MenuItem key={preset.id} value={preset.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <Chip 
+                        label={preset.category} 
+                        size="small" 
+                        color={getCategoryColor(preset.category)}
+                      />
+                      <Typography>{preset.name}</Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {selectedPreset && presets.find(p => p.id === selectedPreset) && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                {presets.find(p => p.id === selectedPreset)?.description}
+              </Typography>
+            )}
+          </Grid>
+
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" gutterBottom>
               Physical Parameters

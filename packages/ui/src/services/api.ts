@@ -129,6 +129,36 @@ class ApiClient {
 
     return response.json();
   }
+
+  async getPresets(): Promise<{ presets: any[] }> {
+    const response = await fetch(`${this.baseUrl}/api/presets`);
+
+    if (!response.ok) {
+      throw new Error('Failed to get presets');
+    }
+
+    return response.json();
+  }
+
+  async getPreset(id: string): Promise<{ preset: any }> {
+    const response = await fetch(`${this.baseUrl}/api/presets/${id}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to get preset');
+    }
+
+    return response.json();
+  }
+
+  async getPresetsByCategory(category: string): Promise<{ presets: any[] }> {
+    const response = await fetch(`${this.baseUrl}/api/presets/categories/${category}`);
+
+    if (!response.ok) {
+      throw new Error('Failed to get presets by category');
+    }
+
+    return response.json();
+  }
 }
 
 export const apiClient = new ApiClient();
