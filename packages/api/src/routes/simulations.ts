@@ -15,7 +15,7 @@ router.get('/', (req: Request, res: Response) => {
 // POST /api/simulations - Create new simulation
 router.post('/', validateRequest(CreateSimulationSchema), (req: Request, res: Response) => {
   try {
-    const { config, maxSteps, updateInterval } = req.body;
+    const { config, civilizations, maxSteps, updateInterval } = req.body;
 
     // Convert input config to simulator config format
     const boxSize: Vector3D = {
@@ -41,7 +41,8 @@ router.post('/', validateRequest(CreateSimulationSchema), (req: Request, res: Re
     const id = simulationService.createSimulation(
       simulatorConfig,
       maxSteps || 10000,
-      updateInterval || 100
+      updateInterval || 100,
+      civilizations
     );
 
     const simulation = simulationService.getSimulation(id);

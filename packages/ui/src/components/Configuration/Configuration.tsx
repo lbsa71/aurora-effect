@@ -15,14 +15,32 @@ import {
   FormControl,
   InputLabel,
   Chip,
+  Divider,
+  IconButton,
+  List,
+  ListItem,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useState, useEffect } from 'react';
 import { useConfigStore } from '../../store/simulation';
 import { apiClient } from '../../services/api';
 import type { PresetScenario } from '../../types/presets';
 
 export const Configuration = () => {
-  const { config, maxSteps, updateInterval, setConfig, setMaxSteps, setUpdateInterval, resetConfig } = useConfigStore();
+  const { 
+    config, 
+    civilizations,
+    maxSteps, 
+    updateInterval, 
+    setConfig, 
+    addCivilization,
+    removeCivilization,
+    updateCivilization,
+    setMaxSteps, 
+    setUpdateInterval, 
+    resetConfig 
+  } = useConfigStore();
   const [presets, setPresets] = useState<PresetScenario[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [loadingPresets, setLoadingPresets] = useState(false);
@@ -111,6 +129,93 @@ export const Configuration = () => {
                 {presets.find(p => p.id === selectedPreset)?.description}
               </Typography>
             )}
+          </Grid>
+
+          {/* Civilizations Configuration */}
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle2">
+                Civilizations ({civilizations.length})
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={addCivilization}
+                disabled={civilizations.length >= 10}
+              >
+                Add Civilization
+              </Button>
+            </Box>
+            <List dense>
+              {civilizations.map((civ, index) => (
+                <ListItem
+                  key={civ.id}
+                  sx={{ 
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    mb: 1,
+                    bgcolor: 'background.paper'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        bgcolor: civ.color,
+                        borderRadius: '50%',
+                        border: '1px solid',
+                        borderColor: 'divider'
+                      }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Name"
+                      value={civ.name || `Civilization ${index + 1}`}
+                      onChange={(e) => updateCivilization(civ.id, { name: e.target.value })}
+                      sx={{ flex: 1, minWidth: 120 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Birth Time (yr)"
+                      value={civ.birthTime}
+                      onChange={(e) => updateCivilization(civ.id, { birthTime: parseFloat(e.target.value) || 0 })}
+                      sx={{ width: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Lifetime (yr)"
+                      value={civ.lifetime}
+                      onChange={(e) => updateCivilization(civ.id, { lifetime: parseFloat(e.target.value) || 0 })}
+                      sx={{ width: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="color"
+                      value={civ.color}
+                      onChange={(e) => updateCivilization(civ.id, { color: e.target.value })}
+                      sx={{ width: 60 }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => removeCivilization(civ.id)}
+                      disabled={civilizations.length === 1}
+                      color="error"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+            <Typography variant="caption" color="text.secondary">
+              Configure multiple starting civilizations with different colors, birth times, and lifetimes.
+              At least one civilization is required.
+            </Typography>
           </Grid>
 
           <Grid item xs={12} md={6}>

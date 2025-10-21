@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+// Schema for individual civilization configuration
+export const CivilizationConfigSchema = z.object({
+  id: z.number().int().nonnegative(),
+  name: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  birthTime: z.number().nonnegative().default(0),
+  lifetime: z.number().nonnegative(),
+  originSystemId: z.number().int().nonnegative().optional(),
+});
+
 export const SimulationConfigSchema = z.object({
   // Physical parameters
   stellarDensity: z.number().positive(),
@@ -11,7 +21,7 @@ export const SimulationConfigSchema = z.object({
   probeRangeLy: z.number().positive(),
   probeLaunchIntervalYr: z.number().positive(),
   
-  // Civilization parameters
+  // Civilization parameters (legacy - for single civilization)
   civilizationLifetimeYr: z.number().positive(),
   
   // Simulation parameters
@@ -22,9 +32,11 @@ export const SimulationConfigSchema = z.object({
 
 export const CreateSimulationSchema = z.object({
   config: SimulationConfigSchema,
+  civilizations: z.array(CivilizationConfigSchema).min(1).optional(),
   maxSteps: z.number().int().positive().optional().default(10000),
   updateInterval: z.number().int().positive().optional().default(100),
 });
 
+export type CivilizationConfigInput = z.infer<typeof CivilizationConfigSchema>;
 export type SimulationConfigInput = z.infer<typeof SimulationConfigSchema>;
 export type CreateSimulationInput = z.infer<typeof CreateSimulationSchema>;

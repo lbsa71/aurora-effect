@@ -6,14 +6,16 @@ import {
   stepSimulation,
   initializeSystems,
   initializeCivilization,
+  SettlementStatus,
 } from '@aurora-effect/simulator';
-import { SimulationStatus, SimulationUpdate } from '../types';
+import { SimulationStatus, SimulationUpdate, CivilizationConfig, CivilizationMetrics } from '../types';
 import { MAX_SIMULATIONS } from '../config';
 
 interface ManagedSimulation {
   id: string;
   state: SimulationState;
   config: SimulationConfig;
+  civilizationConfigs: CivilizationConfig[];
   status: SimulationStatus['status'];
   currentStep: number;
   maxSteps: number;
@@ -29,28 +31,52 @@ class SimulationService {
   private simulations: Map<string, ManagedSimulation> = new Map();
   private updateCallbacks: Map<string, (update: SimulationUpdate) => void> = new Map();
 
-  createSimulation(config: SimulationConfig, maxSteps: number, updateInterval: number): string {
+  createSimulation(
+    config: SimulationConfig, 
+    maxSteps: number, 
+    updateInterval: number,
+    civilizationConfigs?: CivilizationConfig[]
+  ): string {
     if (this.simulations.size >= MAX_SIMULATIONS) {
       throw new Error(`Maximum number of simulations (${MAX_SIMULATIONS}) reached`);
     }
 
     const id = uuidv4();
     
-    // Initialize systems and civilization
-    const systems = initializeSystems(config);
-    const { civilization } = initializeCivilization(
-      systems,
-      0, // civilization ID
-      0, // birth time
-      config.civilizationLifetime,
-      '#00ff00' // green color
-    );
-    const state = createSimulationState(systems, [civilization]);
+    // Initialize systems
+    let systems = initializeSystems(config);
+    
+    // Determine civilizations to create
+    const civsToCreate = civilizationConfigs && civilizationConfigs.length > 0
+      ? civilizationConfigs
+      : [{
+          id: 0,
+          color: '#00ff00',
+          birthTime: 0,
+          lifetime: config.civilizationLifetime,
+        }];
+    
+    // Initialize each civilization
+    const civilizations = [];
+    for (const civConfig of civsToCreate) {
+      const result = initializeCivilization(
+        systems,
+        civConfig.id,
+        civConfig.birthTime,
+        civConfig.lifetime,
+        civConfig.color
+      );
+      systems = result.systems;
+      civilizations.push(result.civilization);
+    }
+    
+    const state = createSimulationState(systems, civilizations);
 
     const simulation: ManagedSimulation = {
       id,
       state,
       config,
+      civilizationConfigs: civsToCreate,
       status: 'created',
       currentStep: 0,
       maxSteps,
@@ -72,6 +98,7 @@ class SimulationService {
       currentTime: sim.state.time,
       totalSteps: sim.currentStep,
       config: sim.config,
+      civilizations: sim.civilizationConfigs,
       createdAt: sim.createdAt,
       startedAt: sim.startedAt,
       stoppedAt: sim.stoppedAt,
@@ -86,6 +113,7 @@ class SimulationService {
       currentTime: sim.state.time,
       totalSteps: sim.currentStep,
       config: sim.config,
+      civilizations: sim.civilizationConfigs,
       createdAt: sim.createdAt,
       startedAt: sim.startedAt,
       stoppedAt: sim.stoppedAt,
@@ -132,6 +160,25 @@ class SimulationService {
     if (sim.currentStep % sim.updateInterval === 0) {
       const callback = this.updateCallbacks.get(id);
       if (callback) {
+        // Calculate per-civilization metrics
+        const civilizationMetrics: CivilizationMetrics[] = sim.state.civilizations.map(civ => {
+          const civConfig = sim.civilizationConfigs.find(c => c.id === civ.id);
+          const settledSystemsCount = sim.state.systems.filter(
+            s => s.status === SettlementStatus.SETTLED && s.civilizationId === civ.id
+          ).length;
+          
+          return {
+            id: civ.id,
+            name: civConfig?.name,
+            color: civ.color,
+            settledSystemsCount,
+            activeProbeCount: civ.activeProbeCount,
+            active: civ.active,
+            birthTime: civ.birthTime,
+            deathTime: !civ.active && civ.lifetime > 0 ? civ.birthTime + civ.lifetime : undefined,
+          };
+        });
+        
         callback({
           id: sim.id,
           time: sim.state.time,
@@ -139,6 +186,7 @@ class SimulationService {
           activeCivilizations: sim.state.metrics.activeCivilizations,
           probesInFlight: sim.state.metrics.probesInFlight,
           frontPosition: sim.state.metrics.frontPosition,
+          civilizationMetrics,
         });
       }
     }

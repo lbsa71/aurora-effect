@@ -1,11 +1,21 @@
 import { SimulationConfig } from '@aurora-effect/simulator';
 
+export interface CivilizationConfig {
+  id: number;
+  name?: string;
+  color: string;
+  birthTime: number;
+  lifetime: number;
+  originSystemId?: number;
+}
+
 export interface SimulationStatus {
   id: string;
   status: 'created' | 'running' | 'paused' | 'stopped' | 'completed' | 'error';
   currentTime: number;
   totalSteps: number;
   config: SimulationConfig;
+  civilizations?: CivilizationConfig[];
   createdAt: Date;
   startedAt?: Date;
   stoppedAt?: Date;
@@ -14,8 +24,20 @@ export interface SimulationStatus {
 
 export interface CreateSimulationRequest {
   config: SimulationConfig;
+  civilizations?: CivilizationConfig[];
   maxSteps?: number;
   updateInterval?: number;
+}
+
+export interface CivilizationMetrics {
+  id: number;
+  name?: string;
+  color: string;
+  settledSystemsCount: number;
+  activeProbeCount: number;
+  active: boolean;
+  birthTime: number;
+  deathTime?: number;
 }
 
 export interface SimulationUpdate {
@@ -25,6 +47,7 @@ export interface SimulationUpdate {
   activeCivilizations: number;
   probesInFlight: number;
   frontPosition: number;
+  civilizationMetrics?: CivilizationMetrics[];
 }
 
 export interface ApiError {

@@ -41,6 +41,41 @@ describe('Simulation API', () => {
     expect(response.body.simulation).toHaveProperty('status', 'created');
   });
 
+  it('should create a simulation with multiple civilizations', async () => {
+    const config = {
+      stellarDensity: 0.1,
+      settleableFraction: 0.5,
+      stellarVelocityKmS: 30,
+      probeVelocityKmS: 1000,
+      probeRangeLy: 10,
+      probeLaunchIntervalYr: 1000,
+      civilizationLifetimeYr: 1000000,
+      numSystems: 100,
+      boxSizePc: 100,
+      timeStepYr: 1000,
+    };
+
+    const civilizations = [
+      { id: 0, color: '#FF0000', birthTime: 0, lifetime: 1000000 },
+      { id: 1, color: '#00FF00', birthTime: 0, lifetime: 1000000 },
+      { id: 2, color: '#0000FF', birthTime: 0, lifetime: 500000 },
+    ];
+
+    const response = await request(app)
+      .post('/api/simulations')
+      .send({ config, civilizations, maxSteps: 1000, updateInterval: 100 })
+      .expect(201);
+
+    expect(response.body).toHaveProperty('simulation');
+    expect(response.body.simulation).toHaveProperty('id');
+    expect(response.body.simulation).toHaveProperty('status', 'created');
+    expect(response.body.simulation).toHaveProperty('civilizations');
+    expect(response.body.simulation.civilizations).toHaveLength(3);
+    expect(response.body.simulation.civilizations[0].color).toBe('#FF0000');
+    expect(response.body.simulation.civilizations[1].color).toBe('#00FF00');
+    expect(response.body.simulation.civilizations[2].color).toBe('#0000FF');
+  });
+
   it('should list simulations', async () => {
     const response = await request(app)
       .get('/api/simulations')

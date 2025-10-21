@@ -14,7 +14,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 
 export const Controls = () => {
   const { currentSimulation, setCurrentSimulation, setLoading, setError, error } = useSimulationStore();
-  const { config, maxSteps, updateInterval } = useConfigStore();
+  const { config, civilizations, maxSteps, updateInterval } = useConfigStore();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { connectionStatus } = useWebSocket(currentSimulation?.id || null);
@@ -31,6 +31,7 @@ export const Controls = () => {
 
       const response = await apiClient.createSimulation({
         config,
+        civilizations: civilizations.length > 0 ? civilizations : undefined,
         maxSteps,
         updateInterval,
       });
