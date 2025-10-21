@@ -61,6 +61,12 @@ export interface Civilization {
   activeProbeCount: number;
   /** Whether this civilization is still active */
   active: boolean;
+  /** Probe velocity relative to host system (fraction of c) - optional, defaults to config value */
+  probeVelocity?: number;
+  /** Maximum probe range (light-years) - optional, defaults to config value */
+  probeRange?: number;
+  /** Probe launch period - time to assemble new probe (years) - optional, defaults to config value */
+  probeLaunchPeriod?: number;
 }
 
 /**

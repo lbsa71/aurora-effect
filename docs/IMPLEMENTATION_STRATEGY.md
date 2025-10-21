@@ -37,7 +37,7 @@ This document outlines the tickets and implementation approach for building the 
 ### Phase 4: Advanced Features 🚧 (In Progress)
 - ✅ Ticket 4.4: Scenario Presets (complete)
 - ✅ Ticket 4.1: Multiple Civilization Origins (complete)
-- ⏳ Ticket 4.2: Variable Probe Parameters
+- ✅ Ticket 4.2: Variable Probe Parameters (complete)
 - ⏳ Ticket 4.3: Galactic Features
 - ⏳ Ticket 4.5: Performance Optimization
 ### Phase 5: Documentation and Polish ⏳ (Not started)

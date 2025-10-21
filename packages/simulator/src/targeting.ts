@@ -99,24 +99,31 @@ export function calculateInterceptTime(
  * @param systems All star systems
  * @param config Simulation configuration
  * @param currentTime Current simulation time
+ * @param civilization The civilization launching the probe (for per-civ probe parameters)
  * @returns Target system ID, or null if no valid target
  */
 export function findBestTarget(
   source: StarSystem,
   systems: StarSystem[],
   config: SimulationConfig,
-  currentTime: number
+  currentTime: number,
+  civilization?: { probeVelocity?: number; probeRange?: number; probeLaunchPeriod?: number }
 ): number | null {
+  // Use civilization-specific parameters if provided, otherwise use config defaults
+  const probeLaunchPeriod = civilization?.probeLaunchPeriod ?? config.probeLaunchPeriod;
+  const probeRange = civilization?.probeRange ?? config.probeRange;
+  const probeVelocity = civilization?.probeVelocity ?? config.probeVelocity;
+
   // Check if source is ready to launch (time since last launch >= T_p)
   if (source.lastLaunchTime !== null) {
     const timeSinceLastLaunch = currentTime - source.lastLaunchTime;
-    if (timeSinceLastLaunch < config.probeLaunchPeriod) {
+    if (timeSinceLastLaunch < probeLaunchPeriod) {
       return null; // Not ready yet
     }
   }
 
   // Convert probe velocity from fraction of c to km/s
-  const probeVelocityKms = config.probeVelocity * 299792.458;
+  const probeVelocityKms = probeVelocity * 299792.458;
 
   let bestTarget: number | null = null;
   let bestInterceptTime = Infinity;
@@ -135,7 +142,7 @@ export function findBestTarget(
     const dist = periodicDistance(source.position, target.position, config.boxSize);
 
     // Skip if out of probe range
-    if (dist > config.probeRange) continue;
+    if (dist > probeRange) continue;
 
     // Calculate intercept time
     const interceptTime = calculateInterceptTime(
@@ -149,7 +156,7 @@ export function findBestTarget(
 
     // Skip if intercept time is too long (exceeds reasonable limit)
     const probeVelLyPerYear = probeVelocityKms / 299792.458;
-    const maxTravelTime = config.probeRange / probeVelLyPerYear;
+    const maxTravelTime = probeRange / probeVelLyPerYear;
     if (interceptTime > maxTravelTime * 1.5) continue; // Allow some margin for moving targets
 
     // Select target with shortest intercept time

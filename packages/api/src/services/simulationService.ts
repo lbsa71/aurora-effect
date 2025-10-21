@@ -64,7 +64,10 @@ class SimulationService {
         civConfig.id,
         civConfig.birthTime,
         civConfig.lifetime,
-        civConfig.color
+        civConfig.color,
+        civConfig.probeVelocity,
+        civConfig.probeRange,
+        civConfig.probeLaunchPeriod
       );
       systems = result.systems;
       civilizations.push(result.civilization);

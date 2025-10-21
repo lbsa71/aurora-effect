@@ -98,11 +98,12 @@ Phase 4 focuses on advanced features to enhance the Aurora Effect simulator with
 ## Test Results
 
 ### API Tests
-- ✅ 24 tests passing (6 basic + 10 presets + 8 demo starfield)
+- ✅ 25 tests passing (7 basic + 10 presets + 8 demo starfield)
 - ✅ All preset endpoints validated
 - ✅ Category filtering tested
 - ✅ Error handling verified
 - ✅ Multi-civilization support tested
+- ✅ Variable probe parameters tested
 
 ### Simulator Tests
 - ✅ 46 tests passing (unchanged)
@@ -112,10 +113,10 @@ Phase 4 focuses on advanced features to enhance the Aurora Effect simulator with
 - ✅ API builds successfully
 - ✅ Simulator builds successfully
 - ✅ UI builds successfully
-- ⚠️ UI bundle size: 281.52 KB gzipped (increased slightly from 280.43 KB)
+- ⚠️ UI bundle size: 281.72 KB gzipped (increased slightly from 281.52 KB)
 - ℹ️ Bundle size increase minimal for additional UI features
 
-## Remaining Phase 4 Tickets
+## Completed Phase 4 Tickets Summary
 
 ### Ticket 4.1: Multiple Civilization Origins ✅ (COMPLETE)
 
@@ -161,15 +162,44 @@ Phase 4 focuses on advanced features to enhance the Aurora Effect simulator with
 
 **Status:** Complete - Full multi-civilization support implemented with UI and metrics
 
-### Ticket 4.2: Variable Probe Parameters (TODO)
+### Ticket 4.2: Variable Probe Parameters ✅ (COMPLETE)
 
-**Scope:**
-- Per-civilization probe capabilities (speed, range, launch period)
-- Technology progression over time
-- Advanced vs primitive civilization modeling
-- UI for configuring variable parameters
+**Implementation Details:**
+- Added per-civilization probe parameters (velocity, range, launch period) to simulator types
+- Updated targeting algorithm to use civilization-specific parameters with config defaults as fallback
+- Modified simulation launch processing to apply per-civilization probe settings
+- Extended API types and validation schemas to support optional probe parameters
+- Enhanced UI Configuration component with probe parameter fields per civilization
+- Added comprehensive test validating variable probe parameters and default fallback behavior
 
-**Status:** Not started
+**Features:**
+- Optional per-civilization probe velocity (km/s)
+- Optional per-civilization probe range (light-years)
+- Optional per-civilization probe launch period (years)
+- Automatic fallback to config defaults when parameters not specified
+- UI placeholders showing default values for clarity
+- Supports modeling advanced vs primitive civilizations
+- Enables technology asymmetry scenarios
+
+**Files Modified:**
+- `packages/simulator/src/types.ts` - Added optional probe parameters to Civilization interface
+- `packages/simulator/src/initialization.ts` - Updated initializeCivilization signature
+- `packages/simulator/src/targeting.ts` - Modified findBestTarget to accept civilization parameters
+- `packages/simulator/src/simulation.ts` - Updated processLaunches to use per-civ parameters
+- `packages/api/src/types/index.ts` - Extended CivilizationConfig with probe parameters
+- `packages/api/src/types/validation.ts` - Added probe parameter validation
+- `packages/api/src/services/simulationService.ts` - Pass probe parameters during initialization
+- `packages/ui/src/types/index.ts` - Added probe parameters to UI types
+- `packages/ui/src/components/Configuration/Configuration.tsx` - Added UI controls for probe parameters
+- `packages/api/tests/api.test.ts` - Added test for variable probe parameters
+
+**Test Results:**
+- ✅ 25 API tests passing (7 basic + 10 presets + 8 demo)
+- ✅ 46 simulator tests passing
+- ✅ Total: 71 tests passing
+- ✅ New test validates parameter persistence and default fallback
+
+**Status:** Complete - Full variable probe parameters support implemented and tested
 
 ### Ticket 4.3: Galactic Features (TODO)
 
@@ -265,9 +295,10 @@ Phase 4 has successfully added significant value to the Aurora Effect simulator 
 - Data export capabilities
 - Visual progress indicators
 - **Multiple civilization support with full UI and metrics** ✨
+- **Variable probe parameters per civilization** ✨
 
 These features make the simulator much more accessible and useful for both casual exploration and scientific analysis. The foundation is solid for completing the remaining advanced features.
 
-**Total Tests:** 70 passing (24 API + 46 simulator)  
-**Total Bundle Size:** 281.52 KB gzipped  
-**Features Completed:** 5/7 planned Phase 4 features (71%)
+**Total Tests:** 71 passing (25 API + 46 simulator)  
+**Total Bundle Size:** 281.72 KB gzipped  
+**Features Completed:** 6/7 planned Phase 4 features (86%)**
