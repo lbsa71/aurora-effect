@@ -16,6 +16,15 @@ export interface DemoStarfieldUpdate {
   rotation: number;
 }
 
+export interface CivilizationConfig {
+  id: number;
+  name?: string;
+  color: string;
+  birthTime: number;
+  lifetime: number;
+  originSystemId?: number;
+}
+
 export interface SimulationConfig {
   stellarDensity: number;          // Stars per pc³
   settleableFraction: number;      // Fraction of settleable systems (0-1)
@@ -31,8 +40,20 @@ export interface SimulationConfig {
 
 export interface CreateSimulationRequest {
   config: SimulationConfig;
+  civilizations?: CivilizationConfig[];
   maxSteps?: number;
   updateInterval?: number;
+}
+
+export interface CivilizationMetrics {
+  id: number;
+  name?: string;
+  color: string;
+  settledSystemsCount: number;
+  activeProbeCount: number;
+  active: boolean;
+  birthTime: number;
+  deathTime?: number;
 }
 
 export interface SimulationStatus {
@@ -40,6 +61,7 @@ export interface SimulationStatus {
   status: 'created' | 'running' | 'paused' | 'stopped';
   currentStep: number;
   config: SimulationConfig;
+  civilizations?: CivilizationConfig[];
   maxSteps?: number;
   updateInterval: number;
 }
@@ -51,6 +73,7 @@ export interface SimulationUpdate {
   activeCivilizations: number;
   probesInFlight: number;
   frontPosition: number;
+  civilizationMetrics?: CivilizationMetrics[];
 }
 
 export interface StarSystem {

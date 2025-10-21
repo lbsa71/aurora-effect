@@ -109,6 +109,7 @@ export const Metrics = () => {
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
           <Tab label="Current" />
           <Tab label="Charts" />
+          <Tab label="Civilizations" />
         </Tabs>
 
         {activeTab === 0 && (
@@ -157,6 +158,88 @@ export const Metrics = () => {
                 {formatNumber(latestUpdate.frontPosition, 1)} ly
               </Typography>
             </Box>
+          </Box>
+        )}
+
+        {activeTab === 2 && latestUpdate.civilizationMetrics && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {latestUpdate.civilizationMetrics.map((civ) => (
+              <Box
+                key={civ.id}
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  bgcolor: 'background.paper'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      bgcolor: civ.color,
+                      borderRadius: '50%',
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  />
+                  <Typography variant="subtitle2">
+                    {civ.name || `Civilization ${civ.id}`}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      ml: 'auto',
+                      px: 1,
+                      py: 0.5,
+                      bgcolor: civ.active ? 'success.main' : 'error.main',
+                      color: 'white',
+                      borderRadius: 1
+                    }}
+                  >
+                    {civ.active ? 'Active' : 'Extinct'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Settled Systems
+                    </Typography>
+                    <Typography variant="body2">
+                      {civ.settledSystemsCount}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Active Probes
+                    </Typography>
+                    <Typography variant="body2">
+                      {civ.activeProbeCount}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Birth Time
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatLargeNumber(civ.birthTime)} yr
+                    </Typography>
+                  </Box>
+                  {civ.deathTime !== undefined && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Death Time
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatLargeNumber(civ.deathTime)} yr
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            ))}
           </Box>
         )}
 

@@ -9,6 +9,7 @@ import type {
   SimulationUpdate,
   SimulationSnapshot,
   DemoStarfieldUpdate,
+  CivilizationConfig,
 } from '../types';
 
 interface SimulationState {
@@ -64,11 +65,16 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 interface ConfigState {
   // Configuration form state
   config: SimulationConfig;
+  civilizations: CivilizationConfig[];
   maxSteps: number;
   updateInterval: number;
 
   // Actions
   setConfig: (config: Partial<SimulationConfig>) => void;
+  setCivilizations: (civilizations: CivilizationConfig[]) => void;
+  addCivilization: () => void;
+  removeCivilization: (id: number) => void;
+  updateCivilization: (id: number, updates: Partial<CivilizationConfig>) => void;
   setMaxSteps: (maxSteps: number) => void;
   setUpdateInterval: (interval: number) => void;
   resetConfig: () => void;
@@ -87,8 +93,20 @@ const defaultConfig: SimulationConfig = {
   timeStepYr: 1000,
 };
 
-export const useConfigStore = create<ConfigState>((set) => ({
+const defaultCivilizations: CivilizationConfig[] = [
+  { id: 0, color: '#00ff00', birthTime: 0, lifetime: 1000000 },
+];
+
+// Generate a color using golden angle for better distribution
+const generateCivilizationColor = (index: number): string => {
+  const goldenAngle = 137.5;
+  const hue = (index * goldenAngle) % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+};
+
+export const useConfigStore = create<ConfigState>((set, get) => ({
   config: defaultConfig,
+  civilizations: defaultCivilizations,
   maxSteps: 5000,
   updateInterval: 50,
 
@@ -96,11 +114,44 @@ export const useConfigStore = create<ConfigState>((set) => ({
     set((state) => ({
       config: { ...state.config, ...partialConfig },
     })),
+  
+  setCivilizations: (civilizations) => set({ civilizations }),
+  
+  addCivilization: () =>
+    set((state) => {
+      const newId = state.civilizations.length > 0 
+        ? Math.max(...state.civilizations.map(c => c.id)) + 1
+        : 0;
+      const newCiv: CivilizationConfig = {
+        id: newId,
+        name: `Civilization ${newId + 1}`,
+        color: generateCivilizationColor(newId),
+        birthTime: 0,
+        lifetime: state.config.civilizationLifetimeYr,
+      };
+      return {
+        civilizations: [...state.civilizations, newCiv],
+      };
+    }),
+  
+  removeCivilization: (id) =>
+    set((state) => ({
+      civilizations: state.civilizations.filter((c) => c.id !== id),
+    })),
+  
+  updateCivilization: (id, updates) =>
+    set((state) => ({
+      civilizations: state.civilizations.map((c) =>
+        c.id === id ? { ...c, ...updates } : c
+      ),
+    })),
+  
   setMaxSteps: (maxSteps) => set({ maxSteps }),
   setUpdateInterval: (updateInterval) => set({ updateInterval }),
   resetConfig: () =>
     set({
       config: defaultConfig,
+      civilizations: defaultCivilizations,
       maxSteps: 5000,
       updateInterval: 50,
     }),
