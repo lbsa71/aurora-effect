@@ -23,6 +23,12 @@ export interface CivilizationConfig {
   birthTime: number;
   lifetime: number;
   originSystemId?: number;
+  /** Probe velocity in km/s - optional, defaults to config value */
+  probeVelocity?: number;
+  /** Maximum probe range in light-years - optional, defaults to config value */
+  probeRange?: number;
+  /** Probe launch period in years - optional, defaults to config value */
+  probeLaunchPeriod?: number;
 }
 
 export interface SimulationConfig {

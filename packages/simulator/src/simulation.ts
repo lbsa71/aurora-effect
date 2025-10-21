@@ -129,8 +129,8 @@ function processLaunches(
     const civ = state.civilizations.find((c) => c.id === source.civilizationId);
     if (!civ || !civ.active) continue;
 
-    // Find best target
-    const targetId = findBestTarget(source, state.systems, config, state.time);
+    // Find best target (pass civilization for per-civ probe parameters)
+    const targetId = findBestTarget(source, state.systems, config, state.time, civ);
 
     if (targetId !== null) {
       const target = state.systems.find((s) => s.id === targetId);
@@ -139,8 +139,11 @@ function processLaunches(
       // Mark target as targeted
       target.status = SettlementStatus.TARGETED;
 
+      // Use civilization-specific probe velocity if available, otherwise use config default
+      const probeVelocity = civ.probeVelocity ?? config.probeVelocity;
+      
       // Calculate intercept time (simplified - use distance / velocity)
-      const probeVelKms = config.probeVelocity * 299792.458;
+      const probeVelKms = probeVelocity * 299792.458;
       const probeVelLyPerYear = probeVelKms / 299792.458;
 
       // Simple distance-based estimate

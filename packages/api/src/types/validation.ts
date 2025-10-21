@@ -8,6 +8,10 @@ export const CivilizationConfigSchema = z.object({
   birthTime: z.number().nonnegative().default(0),
   lifetime: z.number().nonnegative(),
   originSystemId: z.number().int().nonnegative().optional(),
+  // Variable probe parameters (optional, defaults to config values)
+  probeVelocity: z.number().positive().optional(),
+  probeRange: z.number().positive().optional(),
+  probeLaunchPeriod: z.number().positive().optional(),
 });
 
 export const SimulationConfigSchema = z.object({

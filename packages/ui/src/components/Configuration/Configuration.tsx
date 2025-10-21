@@ -170,51 +170,93 @@ export const Configuration = () => {
                         borderColor: 'divider'
                       }}
                     />
-                    <TextField
-                      size="small"
-                      label="Name"
-                      value={civ.name || `Civilization ${index + 1}`}
-                      onChange={(e) => updateCivilization(civ.id, { name: e.target.value })}
-                      sx={{ flex: 1, minWidth: 120 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Birth Time (yr)"
-                      value={civ.birthTime}
-                      onChange={(e) => updateCivilization(civ.id, { birthTime: parseFloat(e.target.value) || 0 })}
-                      sx={{ width: 140 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Lifetime (yr)"
-                      value={civ.lifetime}
-                      onChange={(e) => updateCivilization(civ.id, { lifetime: parseFloat(e.target.value) || 0 })}
-                      sx={{ width: 140 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="color"
-                      value={civ.color}
-                      onChange={(e) => updateCivilization(civ.id, { color: e.target.value })}
-                      sx={{ width: 60 }}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => removeCivilization(civ.id)}
-                      disabled={civilizations.length === 1}
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <TextField
+                          size="small"
+                          label="Name"
+                          value={civ.name || `Civilization ${index + 1}`}
+                          onChange={(e) => updateCivilization(civ.id, { name: e.target.value })}
+                          sx={{ flex: 1, minWidth: 120 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Birth Time (yr)"
+                          value={civ.birthTime}
+                          onChange={(e) => updateCivilization(civ.id, { birthTime: parseFloat(e.target.value) || 0 })}
+                          sx={{ width: 140 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Lifetime (yr)"
+                          value={civ.lifetime}
+                          onChange={(e) => updateCivilization(civ.id, { lifetime: parseFloat(e.target.value) || 0 })}
+                          sx={{ width: 140 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="color"
+                          value={civ.color}
+                          onChange={(e) => updateCivilization(civ.id, { color: e.target.value })}
+                          sx={{ width: 60 }}
+                        />
+                        <IconButton
+                          size="small"
+                          onClick={() => removeCivilization(civ.id)}
+                          disabled={civilizations.length === 1}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Probe Velocity (km/s)"
+                          placeholder={`Default: ${config.probeVelocityKmS}`}
+                          value={civ.probeVelocity ?? ''}
+                          onChange={(e) => updateCivilization(civ.id, { 
+                            probeVelocity: e.target.value ? parseFloat(e.target.value) : undefined 
+                          })}
+                          sx={{ flex: 1 }}
+                          helperText="Optional - overrides config default"
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Probe Range (ly)"
+                          placeholder={`Default: ${config.probeRangeLy}`}
+                          value={civ.probeRange ?? ''}
+                          onChange={(e) => updateCivilization(civ.id, { 
+                            probeRange: e.target.value ? parseFloat(e.target.value) : undefined 
+                          })}
+                          sx={{ flex: 1 }}
+                          helperText="Optional - overrides config default"
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Launch Period (yr)"
+                          placeholder={`Default: ${config.probeLaunchIntervalYr}`}
+                          value={civ.probeLaunchPeriod ?? ''}
+                          onChange={(e) => updateCivilization(civ.id, { 
+                            probeLaunchPeriod: e.target.value ? parseFloat(e.target.value) : undefined 
+                          })}
+                          sx={{ flex: 1 }}
+                          helperText="Optional - overrides config default"
+                        />
+                      </Box>
+                    </Box>
                   </Box>
                 </ListItem>
               ))}
             </List>
             <Typography variant="caption" color="text.secondary">
-              Configure multiple starting civilizations with different colors, birth times, and lifetimes.
-              At least one civilization is required.
+              Configure multiple starting civilizations with different colors, birth times, lifetimes, and probe capabilities.
+              Leave probe parameters empty to use config defaults. At least one civilization is required.
             </Typography>
           </Grid>
 

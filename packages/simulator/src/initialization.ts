@@ -56,7 +56,10 @@ export function initializeCivilization(
   civilizationId: number,
   birthTime: number,
   lifetime: number,
-  color: string
+  color: string,
+  probeVelocity?: number,
+  probeRange?: number,
+  probeLaunchPeriod?: number
 ): { systems: StarSystem[]; civilization: Civilization } {
   // Find all settleable, unsettled systems
   const settleableSystems = systems.filter(
@@ -84,6 +87,9 @@ export function initializeCivilization(
     lifetime,
     activeProbeCount: 0,
     active: true,
+    probeVelocity,
+    probeRange,
+    probeLaunchPeriod,
   };
 
   return { systems, civilization };
