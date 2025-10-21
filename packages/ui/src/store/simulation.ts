@@ -104,7 +104,7 @@ const generateCivilizationColor = (index: number): string => {
   return `hsl(${hue}, 70%, 50%)`;
 };
 
-export const useConfigStore = create<ConfigState>((set, get) => ({
+export const useConfigStore = create<ConfigState>((set) => ({
   config: defaultConfig,
   civilizations: defaultCivilizations,
   maxSteps: 5000,
