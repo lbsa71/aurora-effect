@@ -400,12 +400,17 @@ See [IMPLEMENTATION_STRATEGY.md](docs/IMPLEMENTATION_STRATEGY.md) for the comple
   - CSV data export
 - ✅ Progress Bar
   - Visual simulation completion indicator
-- ⏳ Ticket 4.1: Multiple Civilization Origins
+- ✅ Ticket 4.1: Multiple Civilization Origins
+  - Configure multiple starting civilizations with unique colors
+  - Per-civilization metrics (settled systems, probes, status)
+  - Add/remove/edit civilizations in UI
+  - Visual civilization management interface
+  - Civilization collision handling (first arrival wins)
 - ⏳ Ticket 4.2: Variable Probe Parameters
 - ⏳ Ticket 4.3: Galactic Features
 - ⏳ Ticket 4.5: Performance Optimization
 
-**Status**: 69 tests passing (23 API + 46 simulator), 4/7 features complete!  
+**Status**: 70 tests passing (24 API + 46 simulator), 5/7 features complete (71%)!  
 **See detailed progress**: [docs/PHASE4_SUMMARY.md](docs/PHASE4_SUMMARY.md)
 
 ### Validation Results
