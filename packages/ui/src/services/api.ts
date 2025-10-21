@@ -8,6 +8,7 @@ import type {
   SimulationStatus,
   SimulationSnapshot,
 } from '../types';
+import type { PresetScenario } from '../types/presets';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
@@ -130,7 +131,7 @@ class ApiClient {
     return response.json();
   }
 
-  async getPresets(): Promise<{ presets: any[] }> {
+  async getPresets(): Promise<{ presets: PresetScenario[] }> {
     const response = await fetch(`${this.baseUrl}/api/presets`);
 
     if (!response.ok) {
@@ -140,7 +141,7 @@ class ApiClient {
     return response.json();
   }
 
-  async getPreset(id: string): Promise<{ preset: any }> {
+  async getPreset(id: string): Promise<{ preset: PresetScenario }> {
     const response = await fetch(`${this.baseUrl}/api/presets/${id}`);
 
     if (!response.ok) {
@@ -150,7 +151,7 @@ class ApiClient {
     return response.json();
   }
 
-  async getPresetsByCategory(category: string): Promise<{ presets: any[] }> {
+  async getPresetsByCategory(category: string): Promise<{ presets: PresetScenario[] }> {
     const response = await fetch(`${this.baseUrl}/api/presets/categories/${category}`);
 
     if (!response.ok) {

@@ -19,20 +19,11 @@ import {
 import { useState, useEffect } from 'react';
 import { useConfigStore } from '../../store/simulation';
 import { apiClient } from '../../services/api';
-
-interface Preset {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  config: any;
-  maxSteps?: number;
-  updateInterval?: number;
-}
+import type { PresetScenario } from '../../types/presets';
 
 export const Configuration = () => {
   const { config, maxSteps, updateInterval, setConfig, setMaxSteps, setUpdateInterval, resetConfig } = useConfigStore();
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presets, setPresets] = useState<PresetScenario[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [loadingPresets, setLoadingPresets] = useState(false);
 
