@@ -33,7 +33,7 @@ interface VisualizationState {
 const defaultCamera: CameraState = {
   position: [0, 0, 100],
   target: [0, 0, 0],
-  zoom: 1,
+  zoom: 0.1,
 };
 
 export const useVisualizationStore = create<VisualizationState>((set) => ({

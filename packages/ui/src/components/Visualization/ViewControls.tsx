@@ -56,7 +56,11 @@ export const ViewControls = () => {
   };
 
   const handleZoomOut = () => {
-    setCamera({ zoom: Math.max(0.1, camera.zoom / 1.2) });
+    setCamera({ zoom: Math.max(0.01, camera.zoom / 1.2) });
+  };
+
+  const handleZoomChange = (_: unknown, value: number | number[]) => {
+    setCamera({ zoom: value as number });
   };
 
   return (
@@ -105,7 +109,7 @@ export const ViewControls = () => {
         <Box sx={{ mb: 1, fontSize: '0.875rem', fontWeight: 500, color: 'text.secondary' }}>
           Camera Controls
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
           <Tooltip title="Zoom In">
             <IconButton size="small" onClick={handleZoomIn}>
               <ZoomIn />
@@ -122,8 +126,23 @@ export const ViewControls = () => {
             </IconButton>
           </Tooltip>
           <Box sx={{ ml: 'auto', fontSize: '0.875rem', color: 'text.secondary' }}>
-            Zoom: {camera.zoom.toFixed(1)}x
+            Zoom: {camera.zoom.toFixed(2)}x
           </Box>
+        </Box>
+        <Box>
+          <Box sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
+            Zoom Level
+          </Box>
+          <Slider
+            size="small"
+            min={0.01}
+            max={10}
+            step={0.01}
+            value={camera.zoom}
+            onChange={handleZoomChange}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value.toFixed(2)}x`}
+          />
         </Box>
       </Box>
 
