@@ -34,7 +34,12 @@ This document outlines the tickets and implementation approach for building the 
 - ✅ Ticket 3.7: Civilization Legend
 - ⏳ Ticket 3.8: Playback and History (Optional/Deferred to Phase 4)
 
-### Phase 4: Advanced Features ⏳ (Not started)
+### Phase 4: Advanced Features 🚧 (In Progress)
+- ✅ Ticket 4.4: Scenario Presets (complete)
+- ⏳ Ticket 4.1: Multiple Civilization Origins
+- ⏳ Ticket 4.2: Variable Probe Parameters
+- ⏳ Ticket 4.3: Galactic Features
+- ⏳ Ticket 4.5: Performance Optimization
 ### Phase 5: Documentation and Polish ⏳ (Not started)
 
 ## Architecture Overview
