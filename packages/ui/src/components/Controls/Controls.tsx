@@ -2,7 +2,7 @@
  * Simulation control buttons
  */
 
-import { Box, Button, Card, CardContent, Typography, Alert } from '@mui/material';
+import { Box, Button, Card, CardContent, Typography, Alert, LinearProgress } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import StopIcon from '@mui/icons-material/Stop';
@@ -18,6 +18,10 @@ export const Controls = () => {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { connectionStatus } = useWebSocket(currentSimulation?.id || null);
+
+  const progressPercent = currentSimulation?.maxSteps 
+    ? Math.min(100, (currentSimulation.currentStep / currentSimulation.maxSteps) * 100)
+    : 0;
 
   const handleCreateSimulation = async () => {
     try {
@@ -143,6 +147,18 @@ export const Controls = () => {
             <Typography variant="body2">
               WebSocket: <strong>{connectionStatus}</strong>
             </Typography>
+            {currentSimulation.maxSteps && (
+              <Box sx={{ mt: 1 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={progressPercent} 
+                  sx={{ height: 8, borderRadius: 1 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {progressPercent.toFixed(1)}% complete
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
