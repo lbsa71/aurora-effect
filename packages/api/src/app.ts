@@ -3,12 +3,13 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
+import fs from 'fs';
 import simulationsRouter from './routes/simulations';
 import presetsRouter from './routes/presets';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { simulationService } from './services/simulationService';
 import { demoStarfieldService } from './services/demoStarfieldService';
-import { CORS_ORIGIN } from './config';
+import { CORS_ORIGIN, BASE_PATH } from './config';
 
 export function createApp(): express.Application {
   const app = express();
@@ -40,12 +41,43 @@ export function createApp(): express.Application {
     }
     
     // Serve index.html for SPA routing
-    res.sendFile(path.join(uiDistPath, 'index.html'), (err) => {
-      if (err) {
-        // If UI files don't exist, fall through to 404 handler
-        next();
+    const indexPath = path.join(uiDistPath, 'index.html');
+    
+    // If BASE_PATH is set, rewrite asset paths in HTML at runtime
+    if (BASE_PATH && BASE_PATH !== '/') {
+      try {
+        let html = fs.readFileSync(indexPath, 'utf-8');
+        // Normalize base path (ensure it starts with / and doesn't end with /)
+        const basePath = BASE_PATH.startsWith('/') 
+          ? (BASE_PATH.endsWith('/') ? BASE_PATH.slice(0, -1) : BASE_PATH)
+          : `/${BASE_PATH.replace(/\/$/, '')}`;
+        
+        // Rewrite absolute asset paths to include base path
+        // Matches: href="/assets/...", src="/assets/...", etc.
+        html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, `$1="${basePath}/$2"`);
+        // Also handle any other absolute paths that might be in the HTML
+        html = html.replace(/(href|src)="\/([^"]+\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))"/g, `$1="${basePath}/$2"`);
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+      } catch (err) {
+        console.error('Error rewriting HTML with base path:', err);
+        // Fallback to regular file serving if rewrite fails
+        res.sendFile(indexPath, (err) => {
+          if (err) {
+            next();
+          }
+        });
       }
-    });
+    } else {
+      // No base path, serve normally
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          // If UI files don't exist, fall through to 404 handler
+          next();
+        }
+      });
+    }
   });
 
   // Error handling

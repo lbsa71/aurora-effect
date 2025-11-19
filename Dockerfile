@@ -1,9 +1,9 @@
 # Multi-stage Dockerfile for Aurora Effect
 # Consolidates UI and API into a single container
 # Note: API and Simulator packages should be pre-built before building this image
-# The UI is built inside Docker with configurable base path via VITE_BASE_PATH build arg
+# The UI is built with base / and base path is configured at runtime via BASE_PATH env var
 
-# Stage 1: Build UI with base path support
+# Stage 1: Build UI (always with base /, runtime base path handled by API)
 FROM node:24-alpine AS ui-builder
 
 WORKDIR /app
@@ -20,9 +20,7 @@ COPY packages/ui/src ./packages/ui/src
 # Install dependencies
 RUN npm ci
 
-# Build UI with base path (defaults to / if not set)
-ARG VITE_BASE_PATH=/
-ENV VITE_BASE_PATH=$VITE_BASE_PATH
+# Build UI with base / (no production-specific config baked in)
 RUN npm run build --workspace=packages/ui
 
 # Stage 2: Collect UI build
