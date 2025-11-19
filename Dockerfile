@@ -3,7 +3,7 @@
 # Note: Run 'npm install' and 'npm run build' before building this Docker image
 
 # Stage 1: Collect UI build
-FROM node:20-alpine AS ui-collector
+FROM node:24-alpine AS ui-collector
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ WORKDIR /app
 COPY packages/ui/dist ./packages/ui/dist
 
 # Stage 2: Production runtime
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
