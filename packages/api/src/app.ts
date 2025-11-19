@@ -88,6 +88,12 @@ export function createApp(): express.Application {
       return next();
     }
     
+    // Don't handle asset requests - let static middleware handle them
+    // Assets are served from /assets/ or have file extensions
+    if (req.path.startsWith('/assets/') || /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i.test(req.path)) {
+      return next();
+    }
+    
     // Serve index.html for SPA routing
     const indexPath = path.join(uiDistPath, 'index.html');
     
