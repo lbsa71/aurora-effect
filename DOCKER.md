@@ -1,99 +1,124 @@
 # Docker Setup
 
-This directory contains Docker configuration for running the Aurora Effect application in containers.
+This directory contains Docker configuration for running the Aurora Effect application in a single container.
 
 ## Quick Start
 
 ```bash
-# 1. Build the application
-./docker-build.sh
-
-# 2. Start services with Docker Compose
+# Build and start the service with Docker Compose
 docker compose up -d
 
-# 3. Access the application
-# - UI: http://localhost
-# - API: http://localhost:3000
+# Access the application at http://localhost:3000
+# The UI is served from the same port as the API
 ```
+
+## Architecture
+
+The Aurora Effect application is now consolidated into a **single Docker container** that serves both the UI and API:
+
+- **UI**: Served as static files from the Node.js/Express server
+- **API**: RESTful endpoints under `/api/*`
+- **WebSocket**: Real-time updates via Socket.io
+- **Port**: Single port 3000 for all services
+
+This architecture makes deployment simpler and enables hosting under a subpath (e.g., `projects.lbsa71.net/projects/aurora-project`).
 
 ## Services
 
-### API Service
-- **Image**: Node.js 18 Alpine
+### Consolidated Service
+- **Image**: Node.js 18 Alpine (multi-stage build)
 - **Port**: 3000
 - **Health Check**: http://localhost:3000/health
-- **Dependencies**: express, socket.io, cors, zod, uuid
-
-### UI Service  
-- **Image**: Nginx Alpine
-- **Port**: 80
-- **Health Check**: http://localhost/health
-- **Serves**: Pre-built Vite/React application
+- **Contains**:
+  - Express server (API)
+  - Socket.io (WebSocket)
+  - Static UI files (React/Vite build)
+  - Simulator library
 
 ## Build Process
 
-The Docker setup uses a two-step build process:
+The Docker setup uses a **multi-stage build process**:
 
-1. **Local Build** (`./docker-build.sh`): Builds TypeScript code and bundles UI assets
-2. **Docker Build**: Copies pre-built artifacts and production dependencies into containers
+1. **Stage 1 - UI Builder**: Builds React/Vite UI application
+2. **Stage 2 - API Builder**: Builds TypeScript API and simulator
+3. **Stage 3 - Runtime**: Combines built artifacts in a minimal production image
 
-This approach avoids npm workspace installation issues in Docker environments.
+This approach:
+- Minimizes final image size
+- Separates build and runtime dependencies
+- Builds everything in a single `docker build` command
 
 ## Configuration
 
 ### Environment Variables
 
-Edit `docker-compose.yml` to customize:
+Edit `docker-compose.yml` or set environment variables:
 
-**API:**
+**Application:**
 - `NODE_ENV`: Environment mode (default: production)
 - `PORT`: Server port (default: 3000)
-- `CORS_ORIGIN`: CORS origin (default: http://localhost)
+- `CORS_ORIGIN`: CORS origin (default: *)
 - `MAX_SIMULATIONS`: Max concurrent simulations (default: 10)
-- `UPDATE_INTERVAL_MS`: Update interval (default: 100)
+- `UPDATE_INTERVAL_MS`: Update interval in ms (default: 100)
+- `BASE_PATH`: Base path for subpath deployment (default: empty)
 
-**UI:**
-- `VITE_API_URL`: API server URL (default: http://localhost:3000)
+**Example for subpath deployment:**
+```bash
+docker run -p 3000:3000 -e BASE_PATH=/projects/aurora-project aurora-effect
+```
 
 ### Ports
 
-To change exposed ports, edit `docker-compose.yml`:
+To change the exposed port, edit `docker-compose.yml`:
 
 ```yaml
 services:
-  api:
+  app:
     ports:
-      - "3001:3000"  # Change 3001 to desired port
-  ui:
-    ports:
-      - "8080:80"    # Change 8080 to desired port
+      - "8080:3000"  # Change 8080 to desired external port
 ```
 
 ## Development
 
+### Building the Docker Image
+
+```bash
+# Build with Docker Compose
+docker compose build
+
+# Or build directly
+docker build -t aurora-effect .
+```
+
+### Running the Container
+
+```bash
+# With Docker Compose (recommended)
+docker compose up -d
+
+# Or run directly
+docker run -p 3000:3000 aurora-effect
+```
+
 ### Rebuilding After Code Changes
 
 ```bash
-# 1. Rebuild the application
-./docker-build.sh
-
-# 2. Rebuild and restart containers
+# Rebuild and restart
 docker compose up --build
 
 # Or rebuild specific service
-docker compose build api
-docker compose up -d api
+docker compose build app
+docker compose up -d app
 ```
 
 ### Viewing Logs
 
 ```bash
-# All services
+# All logs
 docker compose logs -f
 
 # Specific service
-docker compose logs -f api
-docker compose logs -f ui
+docker compose logs -f app
 ```
 
 ### Stopping Services
@@ -113,17 +138,52 @@ docker compose down -v
 
 For production deployment:
 
-1. **Update CORS_ORIGIN**: Set to your domain instead of `*`
-2. **Use HTTPS**: Put services behind a reverse proxy (nginx, traefik, etc.)
-3. **Set resource limits**: Add memory/CPU limits in docker-compose.yml
-4. **Enable monitoring**: Add healthcheck endpoints to your monitoring system
-5. **Configure logging**: Set up log aggregation (ELK, Loki, etc.)
+1. **Set CORS_ORIGIN**: Configure allowed origins instead of `*`
+2. **Use HTTPS**: Put service behind a reverse proxy or load balancer
+3. **Set BASE_PATH**: If deploying under a subpath (e.g., `/projects/aurora-project`)
+4. **Set resource limits**: Add memory/CPU limits in docker-compose.yml
+5. **Enable monitoring**: Add healthcheck endpoints to your monitoring system
+6. **Configure logging**: Set up log aggregation (ELK, Loki, etc.)
+
+### Subpath Deployment
+
+To deploy under a subpath like `https://example.com/projects/aurora-project`:
+
+1. Set the `BASE_PATH` environment variable:
+   ```yaml
+   environment:
+     - BASE_PATH=/projects/aurora-project
+   ```
+
+2. Configure your reverse proxy to forward requests to the container
+
+3. The application will automatically:
+   - Serve UI assets with correct base path
+   - Handle API requests at the subpath
+   - Configure WebSocket connections correctly
+
+### Example with Nginx Reverse Proxy
+
+```nginx
+location /projects/aurora-project/ {
+    proxy_pass http://aurora-effect:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+### Resource Limits
 
 Example resource limits:
 
 ```yaml
 services:
-  api:
+  app:
     deploy:
       resources:
         limits:
@@ -138,73 +198,114 @@ services:
 
 ### Build Failures
 
-If `./docker-build.sh` fails:
+If Docker build fails:
 ```bash
-# Clean and reinstall
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+# Clean Docker cache
+docker builder prune
+
+# Rebuild without cache
+docker compose build --no-cache
 ```
 
 ### Container Won't Start
 
 Check logs:
 ```bash
-docker compose logs api
-docker compose logs ui
+docker compose logs app
 ```
+
+Common issues:
+- Port 3000 already in use
+- Missing environment variables
+- Health check failing
 
 ### Port Conflicts
 
-If ports 80 or 3000 are in use:
+If port 3000 is in use:
 ```bash
 # Find what's using the port
 lsof -i :3000
-lsof -i :80
 
 # Stop conflicting service or change ports in docker-compose.yml
 ```
 
-### Module Not Found Errors
+### UI Not Loading
 
-Ensure you ran `./docker-build.sh` before `docker compose build`:
+1. Check that the container is running: `docker compose ps`
+2. Check logs: `docker compose logs app`
+3. Verify UI files were built: `docker exec aurora-effect ls -la /app/packages/ui/dist`
+4. Test health endpoint: `curl http://localhost:3000/health`
+
+## Published Images
+
+Pre-built images are published to GitHub Container Registry (GHCR):
+
+- Image: `ghcr.io/lbsa71/aurora-effect`
+
+Tags:
+- `latest` - Latest build from main branch
+- `<branch-name>` - Builds from specific branches
+- `<tag>` - Release tags (e.g., `v1.2.3`)
+- `sha-<commit>` - Specific commit builds
+
+### Pull and Run
+
 ```bash
-./docker-build.sh
-docker compose build --no-cache
+# Pull latest image
+docker pull ghcr.io/lbsa71/aurora-effect:latest
+
+# Run with Docker
+docker run -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  -e CORS_ORIGIN=* \
+  -e MAX_SIMULATIONS=10 \
+  -e UPDATE_INTERVAL_MS=100 \
+  ghcr.io/lbsa71/aurora-effect:latest
+
+# Or use Docker Compose production file
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-## Architecture
+## Architecture Diagram
 
 ```
-┌─────────────────┐
-│   Browser       │
-│  (localhost)    │
-└────────┬────────┘
-         │
-         ├──────────────────┐
-         │                  │
-         ▼                  ▼
-┌─────────────────┐  ┌─────────────────┐
-│   UI (Nginx)    │  │   API (Node)    │
-│   Port 80       │  │   Port 3000     │
-│                 │  │                 │
-│ - React App     │  │ - REST API      │
-│ - Static Assets │  │ - WebSocket     │
-│                 │  │ - Simulator     │
-└─────────────────┘  └─────────────────┘
-         │                  │
-         └──────────────────┘
-                │
-                ▼
-        Docker Network
-        (aurora-network)
+┌─────────────────────────────────────┐
+│          Browser                    │
+│      (localhost:3000)               │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│   Aurora Effect Container           │
+│   (Node.js/Express)                 │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  Static UI Files            │  │
+│   │  (React/Vite build)         │  │
+│   │  Served from /              │  │
+│   └─────────────────────────────┘  │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  REST API                   │  │
+│   │  /api/*                     │  │
+│   └─────────────────────────────┘  │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  WebSocket Server           │  │
+│   │  /socket.io/*               │  │
+│   └─────────────────────────────┘  │
+│                                     │
+│   ┌─────────────────────────────┐  │
+│   │  Simulator Library          │  │
+│   │  (Core logic)               │  │
+│   └─────────────────────────────┘  │
+└─────────────────────────────────────┘
 ```
 
 ## Files
 
-- `docker-compose.yml`: Orchestration configuration
-- `packages/api/Dockerfile`: API service image
-- `packages/ui/Dockerfile`: UI service image
-- `packages/ui/nginx.conf`: Nginx configuration for UI
+- `Dockerfile`: Multi-stage build for consolidated container
+- `docker-compose.yml`: Development/local orchestration
+- `docker-compose.prod.yml`: Production orchestration with GHCR images
 - `.dockerignore`: Files excluded from Docker build context
-- `docker-build.sh`: Pre-build script for application code

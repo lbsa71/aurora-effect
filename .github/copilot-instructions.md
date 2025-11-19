@@ -207,11 +207,14 @@ The codebase is organized into packages:
 
 8. **Advanced UI Features**: Time series charts with Recharts, preset scenario selector, CSV export, progress bars, multiple civilization configuration, and variable probe parameters per civilization all implemented.
 
+9. **Docker Consolidation**: UI and API consolidated into single Docker container (see CONSOLIDATION_SUMMARY.md). The application now serves both UI and API from port 3000, supports subpath deployment, and uses relative URLs for API calls. Single Dockerfile at repository root.
+
 ## Common Pitfalls to Avoid
 
 - **Don't break existing tests**: 71 unit tests (46 simulator + 25 API) currently passing - maintain this
 - **Validation is complete**: Simulation results validated against the research paper ✅
 - **API is complete**: Phase 2 REST API and WebSocket functionality complete ✅
+- **Docker is consolidated**: Single container serves both UI and API ✅
 - **Don't ignore performance**: Must handle 10,000+ systems efficiently ✅
 - **Don't create code without tests**: Testing infrastructure exists - use it ✅
 - **Read the paper**: FUNCTIONS_AND_ALGORITHMS.md and IMPLEMENTATION_STRATEGY.md are critical references
