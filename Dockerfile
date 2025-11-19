@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Aurora Effect
 # Consolidates UI and API into a single container
-# Note: Run 'npm install' and 'npm run build' before building this Docker image
+# Note: Run 'npm run build' before building this Docker image to build all packages
 
 # Stage 1: Collect UI build
 FROM node:20-alpine AS ui-collector
@@ -27,13 +27,17 @@ COPY packages/api/dist ./packages/api/dist
 # Copy built UI
 COPY --from=ui-collector /app/packages/ui/dist ./packages/ui/dist
 
-# Copy production node_modules (from build context)
-COPY node_modules ./node_modules
+# Install production dependencies only (excluding devDependencies)
+RUN npm ci --omit=dev
 
-# Create a proper package for the simulator in node_modules if not exists
-RUN if [ ! -d "./node_modules/@aurora-effect/simulator" ]; then \
-      mkdir -p ./node_modules/@aurora-effect/simulator && \
-      cp -r ./packages/simulator/dist/* ./node_modules/@aurora-effect/simulator/ && \
+# Ensure simulator dist files are available in node_modules
+# npm workspaces creates a symlink, so we just need to copy dist files
+RUN if [ -L ./node_modules/@aurora-effect/simulator ]; then \
+      rm ./node_modules/@aurora-effect/simulator && \
+      mkdir -p ./node_modules/@aurora-effect/simulator; \
+    fi && \
+    cp -r ./packages/simulator/dist/* ./node_modules/@aurora-effect/simulator/ && \
+    if [ ! -f ./node_modules/@aurora-effect/simulator/package.json ]; then \
       cp ./packages/simulator/package.json ./node_modules/@aurora-effect/simulator/; \
     fi
 
