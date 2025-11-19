@@ -52,11 +52,30 @@ export function createApp(): express.Application {
           ? (BASE_PATH.endsWith('/') ? BASE_PATH.slice(0, -1) : BASE_PATH)
           : `/${BASE_PATH.replace(/\/$/, '')}`;
         
+        console.log(`[Base Path Rewrite] Base path: ${basePath}`);
+        console.log(`[Base Path Rewrite] Original HTML snippet: ${html.substring(0, 200)}...`);
+        
         // Rewrite absolute asset paths to include base path
-        // Matches: href="/assets/...", src="/assets/...", etc.
-        html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, `$1="${basePath}/$2"`);
-        // Also handle any other absolute paths that might be in the HTML
-        html = html.replace(/(href|src)="\/([^"]+\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))"/g, `$1="${basePath}/$2"`);
+        // Match src="/assets/..." or href="/assets/..." (with any attributes before)
+        // This handles: <script src="/assets/...">, <link href="/assets/...">, etc.
+        html = html.replace(/(src|href)="\/(assets\/[^"]+)"/g, (match, attr, path) => {
+          const newPath = `${basePath}/${path}`;
+          console.log(`[Base Path Rewrite] Rewriting ${attr}="/${path}" to ${attr}="${newPath}"`);
+          return `${attr}="${newPath}"`;
+        });
+        
+        // Also handle other absolute paths to static assets
+        html = html.replace(/(src|href)="\/([^"]+\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))"/g, (match, attr, path) => {
+          // Skip if already rewritten (contains basePath)
+          if (path.includes(basePath)) {
+            return match;
+          }
+          const newPath = `${basePath}/${path}`;
+          console.log(`[Base Path Rewrite] Rewriting ${attr}="/${path}" to ${attr}="${newPath}"`);
+          return `${attr}="${newPath}"`;
+        });
+        
+        console.log(`[Base Path Rewrite] Rewritten HTML snippet: ${html.substring(0, 200)}...`);
         
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
