@@ -11,7 +11,17 @@ import type {
 import type { PresetScenario } from '../types/presets';
 
 // Use relative paths for API calls - works with subpath deployments
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Check for runtime-injected base path first, then fall back to env var
+const getBaseUrl = (): string => {
+  // Check for runtime-injected base path (set by server when BASE_PATH is configured)
+  if (typeof window !== 'undefined' && (window as any).__BASE_PATH__) {
+    return (window as any).__BASE_PATH__;
+  }
+  // Fall back to environment variable
+  return import.meta.env.VITE_API_URL || '';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 class ApiClient {
   private baseUrl: string;

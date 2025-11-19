@@ -6,7 +6,18 @@ import { io, Socket } from 'socket.io-client';
 import type { SimulationUpdate, DemoStarfieldUpdate } from '../types';
 
 // Use relative path for WebSocket - works with subpath deployments
-const WS_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+// Check for runtime-injected base path first, then fall back to env var or origin
+const getWebSocketUrl = (): string => {
+  // Check for runtime-injected base path (set by server when BASE_PATH is configured)
+  if (typeof window !== 'undefined' && (window as any).__BASE_PATH__) {
+    const basePath = (window as any).__BASE_PATH__;
+    return typeof window !== 'undefined' ? `${window.location.origin}${basePath}` : 'http://localhost:3000';
+  }
+  // Fall back to environment variable or origin
+  return import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+};
+
+const WS_URL = getWebSocketUrl();
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 

@@ -63,6 +63,11 @@ export function createApp(): express.Application {
           return match;
         });
         
+        // Inject base path into HTML for API client to use
+        // Add a script tag before the closing </head> tag
+        const basePathScript = `<script>window.__BASE_PATH__ = "${basePath}";</script>`;
+        html = html.replace('</head>', `${basePathScript}</head>`);
+        
         console.log(`[Base Path Rewrite] Rewritten HTML snippet: ${html.substring(0, 200)}...`);
         
         res.setHeader('Content-Type', 'text/html');
@@ -112,6 +117,10 @@ export function createApp(): express.Application {
           }
           return match;
         });
+        
+        // Inject base path into HTML for API client to use
+        const basePathScript = `<script>window.__BASE_PATH__ = "${basePath}";</script>`;
+        html = html.replace('</head>', `${basePathScript}</head>`);
         
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
