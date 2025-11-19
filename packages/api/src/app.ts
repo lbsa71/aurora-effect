@@ -64,11 +64,33 @@ export function createApp(): express.Application {
         });
         
         // Inject base path into HTML for API client to use
-        // Add a script tag before the closing </head> tag
+        // Add a script tag before the closing </head> tag (or </body> as fallback)
         const basePathScript = `<script>window.__BASE_PATH__ = "${basePath}";</script>`;
-        html = html.replace('</head>', `${basePathScript}</head>`);
         
-        console.log(`[Base Path Rewrite] Rewritten HTML snippet: ${html.substring(0, 200)}...`);
+        // Try to find and replace </head> tag
+        const headTagIndex = html.indexOf('</head>');
+        if (headTagIndex !== -1) {
+          html = html.substring(0, headTagIndex) + basePathScript + html.substring(headTagIndex);
+          console.log(`[Base Path Rewrite] Injected base path script before </head> at index ${headTagIndex}`);
+        } else {
+          // Fallback: inject before </body> if no </head> tag
+          const bodyTagIndex = html.indexOf('</body>');
+          if (bodyTagIndex !== -1) {
+            html = html.substring(0, bodyTagIndex) + basePathScript + html.substring(bodyTagIndex);
+            console.log(`[Base Path Rewrite] Injected base path script before </body> at index ${bodyTagIndex} (no </head> found)`);
+          } else {
+            // Last resort: append to end
+            html = html + basePathScript;
+            console.log(`[Base Path Rewrite] Appended base path script to end of HTML`);
+          }
+        }
+        
+        const hasScript = html.includes('__BASE_PATH__');
+        console.log(`[Base Path Rewrite] Script injection check: ${hasScript ? 'SUCCESS' : 'FAILED'}`);
+        if (hasScript) {
+          const scriptIndex = html.indexOf('__BASE_PATH__');
+          console.log(`[Base Path Rewrite] Script found at index ${scriptIndex}, context: ${html.substring(Math.max(0, scriptIndex - 50), scriptIndex + 100)}`);
+        }
         
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
@@ -120,7 +142,15 @@ export function createApp(): express.Application {
         
         // Inject base path into HTML for API client to use
         const basePathScript = `<script>window.__BASE_PATH__ = "${basePath}";</script>`;
-        html = html.replace('</head>', `${basePathScript}</head>`);
+        if (html.includes('</head>')) {
+          html = html.replace('</head>', `${basePathScript}</head>`);
+        } else if (html.includes('</body>')) {
+          // Fallback: inject before </body> if no </head> tag
+          html = html.replace('</body>', `${basePathScript}</body>`);
+        } else {
+          // Last resort: append to end
+          html = html + basePathScript;
+        }
         
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
