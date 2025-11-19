@@ -76,16 +76,10 @@ The UI will be available at http://localhost:5173 and the API at http://localhos
 
 ### Running with Docker 🐳
 
-The easiest way to run the entire application is using Docker Compose:
+The easiest way to run the entire application is using Docker:
 
 ```bash
-# First, build the application
-./docker-build.sh
-
-# Then build and start all services
-docker compose up
-
-# Or run in detached mode
+# Build and start with Docker Compose
 docker compose up -d
 
 # View logs
@@ -95,96 +89,60 @@ docker compose logs -f
 docker compose down
 ```
 
-The UI will be available at http://localhost and the API at http://localhost:3000
-
-#### Individual Docker Images
-
-You can also build and run individual services:
-
-```bash
-# Build the application first
-./docker-build.sh
-
-# Build API image
-docker build -f packages/api/Dockerfile -t aurora-api .
-
-# Build UI image
-docker build -f packages/ui/Dockerfile -t aurora-ui .
-
-# Run API container
-docker run -p 3000:3000 aurora-api
-
-# Run UI container
-docker run -p 80:80 aurora-ui
-```
+The application will be available at http://localhost:3000 (both UI and API on the same port).
 
 #### Docker Environment Variables
 
-**API Service:**
+Configure the application with environment variables:
+
 - `PORT` - Server port (default: 3000)
 - `NODE_ENV` - Environment mode (default: production)
 - `CORS_ORIGIN` - CORS origin (default: *)
 - `MAX_SIMULATIONS` - Maximum concurrent simulations (default: 10)
 - `UPDATE_INTERVAL_MS` - Update interval in milliseconds (default: 100)
+- `BASE_PATH` - Base path for subpath deployment (default: empty, e.g., `/projects/aurora-project`)
 
-**UI Service:**
-- `VITE_API_URL` - API server URL (default: http://localhost:3000)
-
-**Note**: The Docker build process requires pre-built application code. Run `./docker-build.sh` to build the application before building Docker images.
+**Note**: The multi-stage Docker build handles all compilation automatically. No pre-build steps required!
 
 ### Using published Docker images (GHCR)
 
-Pre-built images are published to GitHub Container Registry (GHCR) by CI for both API and UI:
+Pre-built images are published to GitHub Container Registry (GHCR):
 
-- API image: `ghcr.io/lbsa71/aurora-effect-api`
-- UI image: `ghcr.io/lbsa71/aurora-effect-ui`
+- Image: `ghcr.io/lbsa71/aurora-effect`
 
 Tags:
 
-- `latest` on the `main` branch
-- Branch names (e.g., `refs/heads/feature-x` -> `feature-x`)
-- Git tags (e.g., `v1.2.3`)
-- Commit SHA (e.g., `sha-<shortsha>`)
+- `latest` - Latest build from main branch
+- `<branch-name>` - Builds from specific branches
+- `<tag>` - Release tags (e.g., `v1.2.3`)
+- `sha-<commit>` - Specific commit builds
 
-Pull images directly:
-
-```bash
-docker pull ghcr.io/lbsa71/aurora-effect-api:latest
-docker pull ghcr.io/lbsa71/aurora-effect-ui:latest
-```
-
-Run with Docker directly:
+Pull and run:
 
 ```bash
-# API
+# Pull latest image
+docker pull ghcr.io/lbsa71/aurora-effect:latest
+
+# Run with Docker
 docker run -p 3000:3000 \
   -e NODE_ENV=production \
   -e PORT=3000 \
-  -e CORS_ORIGIN=https://aurora-effect.lbsa71.net \
+  -e CORS_ORIGIN=* \
   -e MAX_SIMULATIONS=10 \
   -e UPDATE_INTERVAL_MS=100 \
-  ghcr.io/lbsa71/aurora-effect-api:latest
-
-# UI (configure API URL)
-docker run -p 80:80 \
-  -e VITE_API_URL=https://aurora-effect.lbsa71.net \
-  ghcr.io/lbsa71/aurora-effect-ui:latest
+  ghcr.io/lbsa71/aurora-effect:latest
 ```
 
 Run with Docker Compose (production):
 
 ```bash
 # Optionally select a tag (defaults to latest)
-export TAG=v1.2.3   # or main branch name, or omit for latest
+export TAG=v1.2.3   # or branch name, or omit for latest
 
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-Authentication to GHCR is not required for public images. If you need to authenticate (e.g., for rate limits), run:
-
-```bash
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u <github-username> --password-stdin
-```
+Authentication to GHCR is not required for public images. See [PRODUCTION.md](PRODUCTION.md) for deployment details including subpath hosting.
 
 ### Running Examples
 

@@ -5,8 +5,8 @@
 import { io, Socket } from 'socket.io-client';
 import type { SimulationUpdate, DemoStarfieldUpdate } from '../types';
 
-const WS_URL =
-  import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+// Use relative path for WebSocket - works with subpath deployments
+const WS_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 

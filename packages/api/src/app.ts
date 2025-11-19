@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import path from 'path';
 import simulationsRouter from './routes/simulations';
 import presetsRouter from './routes/presets';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -24,6 +25,28 @@ export function createApp(): express.Application {
   // API routes
   app.use('/api/simulations', simulationsRouter);
   app.use('/api/presets', presetsRouter);
+
+  // Serve static files from UI build (if available)
+  // __dirname is /app/packages/api/dist/api/src in production
+  // We need to get to /app/packages/ui/dist
+  const uiDistPath = path.join(__dirname, '../../../../ui/dist');
+  app.use(express.static(uiDistPath));
+
+  // SPA fallback - serve index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    // Don't handle API routes or health check
+    if (req.path.startsWith('/api/') || req.path === '/health') {
+      return next();
+    }
+    
+    // Serve index.html for SPA routing
+    res.sendFile(path.join(uiDistPath, 'index.html'), (err) => {
+      if (err) {
+        // If UI files don't exist, fall through to 404 handler
+        next();
+      }
+    });
+  });
 
   // Error handling
   app.use(notFoundHandler);

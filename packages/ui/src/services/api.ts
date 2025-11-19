@@ -10,8 +10,8 @@ import type {
 } from '../types';
 import type { PresetScenario } from '../types/presets';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+// Use relative paths for API calls - works with subpath deployments
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiClient {
   private baseUrl: string;
